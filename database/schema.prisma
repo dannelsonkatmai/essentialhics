@@ -1,0 +1,1465 @@
+// Essential HICS — Prisma Schema
+// Phase 1: Auth, RBAC, Org Structure, Audit Logging
+// Phase 2: Incidents, IAP, Approval Workflow, Templates, Org Board, Notifications
+// Phase 3: Resource Tracking, 213RR Workflow, Cost Ledger, FEMA PA Export
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum AuthProvider {
+  LOCAL
+  AZURE_AD
+  OKTA
+}
+
+enum FacilityType {
+  HOSPITAL
+  CLINIC
+  ALTERNATE_CARE_SITE
+  OTHER
+}
+
+enum HicsRole {
+  // System Level
+  SYSTEM_ADMIN
+  SYSTEM_VIEWER
+
+  // Facility Level
+  FACILITY_ADMIN
+
+  // Command Staff
+  INCIDENT_COMMANDER
+  DEPUTY_INCIDENT_COMMANDER
+  PUBLIC_INFORMATION_OFFICER
+  SAFETY_OFFICER
+  LIAISON_OFFICER
+  MEDICAL_TECHNICAL_SPECIALIST
+
+  // General Staff — Section Chiefs
+  OPERATIONS_SECTION_CHIEF
+  PLANNING_SECTION_CHIEF
+  LOGISTICS_SECTION_CHIEF
+  FINANCE_ADMIN_SECTION_CHIEF
+
+  // Operations Section Branches
+  MEDICAL_CARE_BRANCH_DIRECTOR
+  INFRASTRUCTURE_BRANCH_DIRECTOR
+  SECURITY_BRANCH_DIRECTOR
+  BUSINESS_CONTINUITY_BRANCH_DIRECTOR
+  HAZMAT_BRANCH_DIRECTOR
+  PATIENT_FAMILY_INFORMATION_BRANCH_DIRECTOR
+
+  // Planning Section Units
+  RESOURCES_UNIT_LEADER
+  SITUATION_UNIT_LEADER
+  DOCUMENTATION_UNIT_LEADER
+  DEMOBILIZATION_UNIT_LEADER
+
+  // Logistics Section Branches & Units
+  SERVICE_BRANCH_DIRECTOR
+  SUPPORT_BRANCH_DIRECTOR
+  COMMUNICATIONS_UNIT_LEADER
+  IT_SYSTEMS_UNIT_LEADER
+  STAFF_FOOD_WATER_UNIT_LEADER
+  TRANSPORTATION_UNIT_LEADER
+  FACILITIES_UNIT_LEADER
+  SUPPLY_UNIT_LEADER
+  LABOR_POOL_CREDENTIALS_UNIT_LEADER
+
+  // Finance/Admin Section Units
+  TIME_UNIT_LEADER
+  PROCUREMENT_UNIT_LEADER
+  COMPENSATION_CLAIMS_UNIT_LEADER
+  COST_UNIT_LEADER
+
+  // General access
+  RESPONDER
+  READ_ONLY_OBSERVER
+}
+
+enum AuditAction {
+  USER_LOGIN
+  USER_LOGIN_FAILED
+  USER_LOGOUT
+  USER_LOCKED
+  USER_CREATED
+  USER_UPDATED
+  USER_DEACTIVATED
+  USER_ROLE_ASSIGNED
+  USER_ROLE_REMOVED
+  USER_PASSWORD_RESET
+  USER_MFA_ENROLLED
+  USER_MFA_DISABLED
+  USER_SESSION_REVOKED
+  FACILITY_CREATED
+  FACILITY_UPDATED
+  SETTINGS_UPDATED
+  IAP_CREATED
+  IAP_UPDATED
+  IAP_SUBMITTED
+  IAP_APPROVED
+  IAP_RETURNED
+  IAP_PUBLISHED
+  IAP_ARCHIVED
+  INCIDENT_CREATED
+  INCIDENT_UPDATED
+  INCIDENT_CLOSED
+  POSITION_ASSIGNED
+  POSITION_RELIEVED
+  RESOURCE_REQUESTED
+  RESOURCE_APPROVED
+  RESOURCE_ASSIGNED
+  // Phase 3
+  RESOURCE_CREATED
+  RESOURCE_UPDATED
+  RESOURCE_STATUS_CHANGED
+  RESOURCE_DEMOBILIZED
+  COST_RECORD_CREATED
+  COST_RECORD_UPDATED
+  COST_RECORD_APPROVED
+  REQUEST_CREATED
+  REQUEST_SUBMITTED
+  REQUEST_DENIED
+  REQUEST_CANCELLED
+  MUTUAL_AID_AGREEMENT_CREATED
+  FEMA_REPORT_EXPORTED
+  COST_ROLLUP_COMPUTED
+}
+
+// ─── Phase 2 Enums ────────────────────────────────────────────────────────────
+
+enum IncidentType {
+  MASS_CASUALTY
+  NATURAL_DISASTER
+  HAZMAT
+  CYBER_ATTACK
+  UTILITY_FAILURE
+  INFECTIOUS_DISEASE
+  ACTIVE_THREAT
+  INFRASTRUCTURE
+  PLANNED_EVENT
+  OTHER
+}
+
+enum IncidentStatus {
+  PLANNING
+  ACTIVE
+  DEMOBILIZING
+  CLOSED
+  EXERCISED
+}
+
+enum IncidentSeverity {
+  LEVEL_1
+  LEVEL_2
+  LEVEL_3
+}
+
+enum OperationalPeriodStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+}
+
+enum IapStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ObjectivePriority {
+  IMMEDIATE
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum ObjectiveStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum RiskRating {
+  LOW
+  MEDIUM
+  HIGH
+  EXTREME
+}
+
+enum SystemStatus {
+  NORMAL
+  DEGRADED
+  FAILED
+  UNKNOWN
+}
+
+enum FacilityOverallStatus {
+  NORMAL
+  MODIFIED
+  RESTRICTED
+  EVACUATION
+}
+
+enum PositionActivationStatus {
+  VACANT
+  ACTIVATED
+  DEACTIVATED
+}
+
+enum NotificationType {
+  IAP_SUBMITTED
+  IAP_APPROVED
+  IAP_RETURNED
+  IAP_PUBLISHED
+  POSITION_ASSIGNED
+  POSITION_RELIEVED
+  PDF_READY
+  COMMENT_ADDED
+  MESSAGE_RECEIVED
+  // Phase 3
+  RESOURCE_STATUS_CHANGED
+  REQUEST_SUBMITTED
+  REQUEST_APPROVED
+  REQUEST_DENIED
+  REQUEST_FULFILLED
+  COST_ROLLUP_READY
+  REPORT_READY
+  ETA_ALERT
+}
+
+enum ExportJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// ─── Phase 3 Enums ────────────────────────────────────────────────────────────
+
+enum ExportJobType {
+  IAP_PDF
+  FEMA_PA_XLSX
+  COST_SUMMARY_PDF
+  ICS213RR_PDF
+}
+
+enum NimsKind {
+  PERSONNEL
+  EQUIPMENT
+  TEAM
+  SUPPLY
+  FACILITIES
+  OTHER
+}
+
+enum ResourceCategory {
+  OVERHEAD
+  LABOR
+  EQUIPMENT
+  SUPPLY
+  FACILITY
+}
+
+enum ResourceStatus {
+  ORDERED
+  IN_TRANSIT
+  ASSIGNED
+  AVAILABLE
+  OUT_OF_SERVICE
+  DEMOBILIZED
+}
+
+enum ResourceSource {
+  INTERNAL
+  MUTUAL_AID
+  CONTRACTED
+  DONATED
+}
+
+enum RequestStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  PARTIALLY_FILLED
+  FILLED
+  CANCELLED
+  DENIED
+}
+
+enum RequestPriority {
+  IMMEDIATE
+  PRIORITY
+  ROUTINE
+}
+
+enum CostType {
+  LABOR
+  EQUIPMENT
+  SUPPLY
+  CONTRACT
+  OVERHEAD
+}
+
+// FEMA Public Assistance damage categories
+// CAT_A = Debris Removal, CAT_B = Emergency Protective Measures,
+// CAT_C = Roads & Bridges, CAT_D = Water Control Facilities,
+// CAT_E = Buildings & Equipment, CAT_F = Utilities,
+// CAT_G = Parks & Recreation, CAT_Z = Management Costs (admin, ≤5%)
+enum FemaPACategory {
+  CAT_A
+  CAT_B
+  CAT_C
+  CAT_D
+  CAT_E
+  CAT_F
+  CAT_G
+  CAT_Z
+}
+
+enum CostUnitPeriod {
+  HOURLY
+  DAILY
+  WEEKLY
+  FLAT
+}
+
+// ─── Core Org Models ─────────────────────────────────────────────────────────
+
+model HealthSystem {
+  id                    String     @id @default(uuid()) @db.Uuid
+  name                  String
+  shortName             String     @map("short_name")
+  logoUrl               String?    @map("logo_url")
+  primaryContactEmail   String     @map("primary_contact_email")
+  // settings: MFA policy, session limits, SSO config per facility, etc.
+  settings              Json       @default("{}")
+  isDeleted             Boolean    @default(false) @map("is_deleted")
+  deletedAt             DateTime?  @map("deleted_at") @db.Timestamptz
+  createdAt             DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+
+  facilities            Facility[]
+  users                 User[]
+
+  @@map("health_systems")
+}
+
+model Facility {
+  id                      String       @id @default(uuid()) @db.Uuid
+  healthSystemId          String       @map("health_system_id") @db.Uuid
+  name                    String
+  shortName               String       @map("short_name")
+  address                 Json         // { street, city, state, zip }
+  phone                   String?
+  fax                     String?
+  licenseNumber           String?      @map("license_number")
+  facilityType            FacilityType @default(HOSPITAL) @map("facility_type")
+  isActive                Boolean      @default(true) @map("is_active")
+  timezone                String       @default("America/New_York") // IANA tz
+  emergencyContactName    String?      @map("emergency_contact_name")
+  emergencyContactPhone   String?      @map("emergency_contact_phone")
+  isDeleted               Boolean      @default(false) @map("is_deleted")
+  deletedAt               DateTime?    @map("deleted_at") @db.Timestamptz
+  createdAt               DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt               DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  healthSystem            HealthSystem       @relation(fields: [healthSystemId], references: [id])
+  departments             Department[]
+  userFacilityRoles       UserFacilityRole[]
+  positions               Position[]
+  auditLogs               AuditLog[]
+
+  @@index([healthSystemId])
+  @@map("facilities")
+}
+
+model Department {
+  id                 String      @id @default(uuid()) @db.Uuid
+  facilityId         String      @map("facility_id") @db.Uuid
+  name               String
+  code               String
+  parentDepartmentId String?     @map("parent_department_id") @db.Uuid
+  isActive           Boolean     @default(true) @map("is_active")
+  isDeleted          Boolean     @default(false) @map("is_deleted")
+  deletedAt          DateTime?   @map("deleted_at") @db.Timestamptz
+  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  facility           Facility    @relation(fields: [facilityId], references: [id])
+  parentDepartment   Department? @relation("DepartmentHierarchy", fields: [parentDepartmentId], references: [id])
+  childDepartments   Department[] @relation("DepartmentHierarchy")
+  positions          Position[]
+
+  @@index([facilityId])
+  @@map("departments")
+}
+
+// ─── Users ───────────────────────────────────────────────────────────────────
+
+model User {
+  id                  String       @id @default(uuid()) @db.Uuid
+  healthSystemId      String       @map("health_system_id") @db.Uuid
+  email               String       @unique
+  firstName           String       @map("first_name")
+  lastName            String       @map("last_name")
+  displayName         String?      @map("display_name")
+  jobTitle            String?      @map("job_title")
+  employeeId          String?      @map("employee_id")
+  phoneMobile         String?      @map("phone_mobile")
+  phoneWork           String?      @map("phone_work")
+  pagerNumber         String?      @map("pager_number")
+  passwordHash        String?      @map("password_hash")
+  authProvider        AuthProvider @default(LOCAL) @map("auth_provider")
+  externalId          String?      @map("external_id") // SSO subject id
+  isActive            Boolean      @default(true) @map("is_active")
+  isLocked            Boolean      @default(false) @map("is_locked")
+  lockedUntil         DateTime?    @map("locked_until") @db.Timestamptz
+  failedLoginAttempts Int          @default(0) @map("failed_login_attempts")
+  lastLoginAt         DateTime?    @map("last_login_at") @db.Timestamptz
+  passwordChangedAt   DateTime?    @map("password_changed_at") @db.Timestamptz
+  mustChangePassword  Boolean      @default(true) @map("must_change_password")
+  // Stored encrypted (AES-256) at application level
+  mfaEnabled          Boolean      @default(false) @map("mfa_enabled")
+  mfaSecret           String?      @map("mfa_secret") // AES-256 encrypted
+  mfaBackupCodes      String[]     @map("mfa_backup_codes") // AES-256 encrypted array
+  createdBy           String?      @map("created_by") @db.Uuid
+  isDeleted           Boolean      @default(false) @map("is_deleted")
+  deletedAt           DateTime?    @map("deleted_at") @db.Timestamptz
+  createdAt           DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  healthSystem        HealthSystem      @relation(fields: [healthSystemId], references: [id])
+  createdByUser       User?             @relation("UserCreatedBy", fields: [createdBy], references: [id])
+  createdUsers        User[]            @relation("UserCreatedBy")
+  userFacilityRoles   UserFacilityRole[]
+  sessions            Session[]
+  passwordResetTokens PasswordResetToken[]
+  auditLogsActed      AuditLog[]        @relation("AuditActorUser")
+
+  @@index([email])
+  @@index([healthSystemId])
+  @@map("users")
+}
+
+model UserFacilityRole {
+  id                String    @id @default(uuid()) @db.Uuid
+  userId            String    @map("user_id") @db.Uuid
+  facilityId        String    @map("facility_id") @db.Uuid
+  hicsRole          HicsRole  @map("hics_role")
+  isPrimaryFacility Boolean   @default(false) @map("is_primary_facility")
+  assignedBy        String?   @map("assigned_by") @db.Uuid
+  assignedAt        DateTime  @default(now()) @map("assigned_at") @db.Timestamptz
+  isDeleted         Boolean   @default(false) @map("is_deleted")
+  deletedAt         DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  user              User      @relation(fields: [userId], references: [id])
+  facility          Facility  @relation(fields: [facilityId], references: [id])
+
+  @@unique([userId, facilityId, hicsRole])
+  @@index([userId])
+  @@index([facilityId])
+  @@map("user_facility_roles")
+}
+
+// HICS position directory — who is slotted into which role at a facility
+model Position {
+  id               String    @id @default(uuid()) @db.Uuid
+  facilityId       String    @map("facility_id") @db.Uuid
+  hicsRole         HicsRole  @map("hics_role")
+  displayName      String    @map("display_name")
+  reportsToRole    HicsRole? @map("reports_to_role")
+  departmentId     String?   @map("department_id") @db.Uuid
+  contactOverride  Json?     @map("contact_override")
+  isDeleted        Boolean   @default(false) @map("is_deleted")
+  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  facility         Facility   @relation(fields: [facilityId], references: [id])
+  department       Department? @relation(fields: [departmentId], references: [id])
+
+  @@index([facilityId])
+  @@map("positions")
+}
+
+// ─── Sessions & Auth Tokens ───────────────────────────────────────────────────
+
+model Session {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  refreshToken   String    @unique @map("refresh_token") // hashed
+  deviceInfo     String?   @map("device_info")
+  ipAddress      String?   @map("ip_address")
+  userAgent      String?   @map("user_agent")
+  lastUsedAt     DateTime  @default(now()) @map("last_used_at") @db.Timestamptz
+  expiresAt      DateTime  @map("expires_at") @db.Timestamptz
+  isRevoked      Boolean   @default(false) @map("is_revoked")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  user           User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([refreshToken])
+  @@map("sessions")
+}
+
+model PasswordResetToken {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  tokenHash  String    @unique @map("token_hash") // SHA-256 of raw token
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz
+  usedAt     DateTime? @map("used_at") @db.Timestamptz
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  user       User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+// ─── Audit Log ────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id             String       @id @default(uuid()) @db.Uuid
+  timestamp      DateTime     @default(now()) @db.Timestamptz
+  actorUserId    String?      @map("actor_user_id") @db.Uuid
+  actorIpAddress String?      @map("actor_ip_address")
+  actorUserAgent String?      @map("actor_user_agent")
+  facilityId     String?      @map("facility_id") @db.Uuid
+  incidentId     String?      @map("incident_id") @db.Uuid // reserved for Phase 2
+  action         AuditAction
+  resourceType   String       @map("resource_type")
+  resourceId     String       @map("resource_id")
+  changes        Json?        // { before: {...}, after: {...} }
+  metadata       Json?
+
+  actorUser      User?        @relation("AuditActorUser", fields: [actorUserId], references: [id])
+  facility       Facility?    @relation(fields: [facilityId], references: [id])
+  incident       Incident?    @relation(fields: [incidentId], references: [id])
+
+  @@index([timestamp])
+  @@index([actorUserId])
+  @@index([facilityId])
+  @@index([incidentId])
+  @@index([action])
+  @@index([resourceType])
+  @@map("audit_logs")
+}
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 2 — INCIDENTS, IAP, TEMPLATES, ORG BOARD, NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════
+
+// ─── Incidents ───────────────────────────────────────────────────────────────
+
+model Incident {
+  id                   String           @id @default(uuid()) @db.Uuid
+  facilityId           String           @map("facility_id") @db.Uuid
+  healthSystemId       String           @map("health_system_id") @db.Uuid
+  incidentNumber       String           @map("incident_number")
+  name                 String
+  incidentType         IncidentType     @map("incident_type")
+  status               IncidentStatus   @default(PLANNING)
+  severity             IncidentSeverity
+  declarationTime      DateTime         @map("declaration_time") @db.Timestamptz
+  estimatedEndTime     DateTime?        @map("estimated_end_time") @db.Timestamptz
+  actualEndTime        DateTime?        @map("actual_end_time") @db.Timestamptz
+  incidentLocation     String?          @map("incident_location")
+  situationSummary     String?          @map("situation_summary")
+  isExercise           Boolean          @default(false) @map("is_exercise")
+  createdBy            String           @map("created_by") @db.Uuid
+  incidentCommanderId  String?          @map("incident_commander_id") @db.Uuid
+  closedAt             DateTime?        @map("closed_at") @db.Timestamptz
+  isDeleted            Boolean          @default(false) @map("is_deleted")
+  deletedAt            DateTime?        @map("deleted_at") @db.Timestamptz
+  createdAt            DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  facility              Facility                     @relation(fields: [facilityId], references: [id])
+  createdByUser         User                         @relation("IncidentCreatedBy", fields: [createdBy], references: [id])
+  incidentCommander     User?                        @relation("IncidentCommander", fields: [incidentCommanderId], references: [id])
+  operationalPeriods    OperationalPeriod[]
+  positionAssignments   IncidentPositionAssignment[]
+  messages              IapForm213[]
+  notifications         Notification[]
+  auditLogs             AuditLog[]
+  // Phase 3
+  incidentResources     IncidentResource[]
+  resourceRequests      ResourceRequest[]
+  costRecords           CostRecord[]
+  costRollups           CostRollup[]
+  exportJobs            ExportJob[]
+
+  @@unique([facilityId, incidentNumber])
+  @@index([facilityId, status])
+  @@index([healthSystemId])
+  @@map("incidents")
+}
+
+model OperationalPeriod {
+  id              String                  @id @default(uuid()) @db.Uuid
+  incidentId      String                  @map("incident_id") @db.Uuid
+  periodNumber    Int                     @map("period_number")
+  startTime       DateTime                @map("start_time") @db.Timestamptz
+  endTime         DateTime                @map("end_time") @db.Timestamptz
+  status          OperationalPeriodStatus @default(DRAFT)
+  weatherForecast String?                 @map("weather_forecast")
+  createdBy       String                  @map("created_by") @db.Uuid
+  createdAt       DateTime                @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime                @updatedAt @map("updated_at") @db.Timestamptz
+
+  incident        Incident           @relation(fields: [incidentId], references: [id])
+  createdByUser   User               @relation("OpPeriodCreatedBy", fields: [createdBy], references: [id])
+  iap             Iap?
+  form201         IapForm201?
+  form202         IapForm202?
+  form203         IapForm203?
+  form204s        IapForm204[]
+  form207         IapForm207?
+  form215         IapForm215?
+  form215a        IapForm215a?
+  hics251         IapFormHics251?
+  hics252         IapFormHics252?
+  positionAssignments IncidentPositionAssignment[]
+  // Phase 3
+  costRecords     CostRecord[]
+  costRollup      CostRollup?
+  resourceAssignments ResourceAssignment[]
+
+  @@unique([incidentId, periodNumber])
+  @@index([incidentId, status])
+  @@map("operational_periods")
+}
+
+// ─── IAP Master ───────────────────────────────────────────────────────────────
+
+model Iap {
+  id                      String    @id @default(uuid()) @db.Uuid
+  operationalPeriodId     String    @unique @map("operational_period_id") @db.Uuid
+  incidentId              String    @map("incident_id") @db.Uuid
+  status                  IapStatus @default(DRAFT)
+  versionNumber           Int       @default(1) @map("version_number")
+  templateId              String?   @map("template_id") @db.Uuid
+  createdBy               String    @map("created_by") @db.Uuid
+  submittedForReviewAt    DateTime? @map("submitted_for_review_at") @db.Timestamptz
+  submittedByUserId       String?   @map("submitted_by_user_id") @db.Uuid
+  reviewedAt              DateTime? @map("reviewed_at") @db.Timestamptz
+  reviewedByUserId        String?   @map("reviewed_by_user_id") @db.Uuid
+  approvedAt              DateTime? @map("approved_at") @db.Timestamptz
+  approvedByUserId        String?   @map("approved_by_user_id") @db.Uuid
+  publishedAt             DateTime? @map("published_at") @db.Timestamptz
+  publishedByUserId       String?   @map("published_by_user_id") @db.Uuid
+  approvalNotes           String?   @map("approval_notes")
+  exportedPdfUrl          String?   @map("exported_pdf_url")
+  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt               DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  operationalPeriod       OperationalPeriod    @relation(fields: [operationalPeriodId], references: [id])
+  createdByUser           User                 @relation("IapCreatedBy", fields: [createdBy], references: [id])
+  template                IapTemplate?         @relation(fields: [templateId], references: [id])
+  reviewAssignments       IapReviewAssignment[]
+  comments                IapComment[]
+  exportJobs              ExportJob[]
+
+  @@index([incidentId, status])
+  @@map("iaps")
+}
+
+model IapReviewAssignment {
+  id                 String    @id @default(uuid()) @db.Uuid
+  iapId              String    @map("iap_id") @db.Uuid
+  assignedToUserId   String    @map("assigned_to_user_id") @db.Uuid
+  assignedByUserId   String    @map("assigned_by_user_id") @db.Uuid
+  assignedAt         DateTime  @default(now()) @map("assigned_at") @db.Timestamptz
+  completedAt        DateTime? @map("completed_at") @db.Timestamptz
+  notes              String?
+  action             String    @default("PENDING") // APPROVED | RETURNED | PENDING
+
+  iap                Iap       @relation(fields: [iapId], references: [id])
+  assignedToUser     User      @relation("ReviewAssignedTo", fields: [assignedToUserId], references: [id])
+  assignedByUser     User      @relation("ReviewAssignedBy", fields: [assignedByUserId], references: [id])
+
+  @@map("iap_review_assignments")
+}
+
+model IapComment {
+  id                  String    @id @default(uuid()) @db.Uuid
+  iapId               String    @map("iap_id") @db.Uuid
+  formReference       String    @map("form_reference")
+  fieldReference      String?   @map("field_reference")
+  commentText         String    @map("comment_text")
+  authorUserId        String    @map("author_user_id") @db.Uuid
+  isResolved          Boolean   @default(false) @map("is_resolved")
+  resolvedByUserId    String?   @map("resolved_by_user_id") @db.Uuid
+  resolvedAt          DateTime? @map("resolved_at") @db.Timestamptz
+  parentCommentId     String?   @map("parent_comment_id") @db.Uuid
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  iap                 Iap        @relation(fields: [iapId], references: [id])
+  author              User       @relation("CommentAuthor", fields: [authorUserId], references: [id])
+  parent              IapComment? @relation("CommentReplies", fields: [parentCommentId], references: [id])
+  replies             IapComment[] @relation("CommentReplies")
+
+  @@index([iapId, isResolved])
+  @@map("iap_comments")
+}
+
+// ─── IAP Forms ────────────────────────────────────────────────────────────────
+
+model IapForm201 {
+  id                          String    @id @default(uuid()) @db.Uuid
+  operationalPeriodId         String    @unique @map("operational_period_id") @db.Uuid
+  incidentName                String?   @map("incident_name")
+  dateTimeInitiated           DateTime? @map("date_time_initiated") @db.Timestamptz
+  mapSketchUrl                String?   @map("map_sketch_url")
+  currentSituation            String?   @map("current_situation")
+  initialResponseObjectives   String?   @map("initial_response_objectives")
+  currentOrganization         Json?     @map("current_organization")
+  resourcesSummary            Json?     @map("resources_summary")
+  actionsTaken                Json?     @map("actions_taken")
+  preparedByUserId            String?   @map("prepared_by_user_id") @db.Uuid
+  preparedAt                  DateTime? @map("prepared_at") @db.Timestamptz
+  createdAt                   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  operationalPeriod           OperationalPeriod @relation(fields: [operationalPeriodId], references: [id])
+  preparedByUser              User?             @relation("Form201PreparedBy", fields: [preparedByUserId], references: [id])
+
+  @@map("iap_forms_201")
+}
+
+model IapForm202 {
+  id                            String    @id @default(uuid()) @db.Uuid
+  operationalPeriodId           String    @unique @map("operational_period_id") @db.Uuid
+  periodStart                   DateTime? @map("period_start") @db.Timestamptz
+  periodEnd                     DateTime? @map("period_end") @db.Timestamptz
+  overallIncidentObjectives     String?   @map("overall_incident_objectives")
+  operationalPeriodObjectives   Json?     @map("operational_period_objectives")
+  weatherForecast               String?   @map("weather_forecast")
+  generalSafetyMessage          String?   @map("general_safety_message")
+  siteSafetyPlanRequired        Boolean   @default(false) @map("site_safety_plan_required")
+  attachmentList                Json?     @map("attachment_list")
+  approvedByUserId              String?   @map("approved_by_user_id") @db.Uuid
+  approvedAt                    DateTime? @map("approved_at") @db.Timestamptz
+  preparedByUserId              String?   @map("prepared_by_user_id") @db.Uuid
+  preparedAt                    DateTime? @map("prepared_at") @db.Timestamptz
+  createdAt                     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  operationalPeriod             OperationalPeriod @relation(fields: [operationalPeriodId], references: [id])
+  preparedByUser                User?             @relation("Form202PreparedBy", fields: [preparedByUserId], references: [id])
+
+  @@map("iap_forms_202")
+}
+
+model IapForm203 {
+  id                      String    @id @default(uuid()) @db.Uuid
+  operationalPeriodId     String    @unique @map("operational_period_id") @db.Uuid
+  periodStart             DateTime? @map("period_start") @db.Timestamptz
+  periodEnd               DateTime? @map("period_end") @db.Timestamptz
+  positionAssignments     Json?     @map("position_assignments")
+  preparedByUserId        String?   @map("prepared_by_user_id") @db.Uuid
+  preparedAt              DateTime? @map("prepared_at") @db.Timestamptz
+  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt               DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  operationalPeriod       OperationalPeriod @relation(fields: [operationalPeriodId], references: [id])
+  preparedByUser          User?             @relation("Form203PreparedBy", fields: [preparedByUserId], references: [id])
+
+  @@map("iap_forms_203")
+}
+
+model IapForm204 {
+  id                          String    @id @default(uuid()) @db.Uuid
+  operationalPeriodId         String    @map("operational_period_id") @db.Uuid
+  branch                      String?
+  divisionGroup               String?   @map("division_group")
+  periodStart                 DateTime? @map("period_start") @db.Timestamptz
+  periodEnd                   DateTime? @map("period_end") @db.Timestamptz
+  operationsChiefName         String?   @map("operations_chief_name")
+  branchDirectorName          String?   @map("branch_director_name")
+  resourcesAssigned           Json?     @map("resources_assigned")
+  workAssignments             String?   @map("work_assignments")
+  specialInstructions         String?   @map("special_instructions")
+  communicationsName          String?   @map("communications_name")
+  medicalPlanReference        String?   @map("medical_plan_reference")
+  preparedByUserId            String?   @map("prepared_by_user_id") @db.Uuid
+  preparedAt                  DateTime? @map("prepared_at") @db.Timestamptz
+  createdAt                   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  operationalPeriod           OperationalPeriod @relation(fields: [operationalPeriodId], references: [id])
+  preparedByUser              User?             @relation("Form204PreparedBy", fields: [preparedByUserId], references: [id])
+
+  @@index([operationalPeriodId])
+  @@map("iap_forms_204")
+}
+
+model IapForm207 {
+  id                    String    @id @default(uuid()) @db.Uuid
+  operationalPeriodId   String    @unique @map("operational_period_id") @db.Uuid
+  orgChartSnapshot      Json?     @map("org_chart_snapshot")
+  generatedAt           DateTime? @map("generated_at") @db.Timestamptz
+  generatedByUserId     String?   @map("generated_by_user_id") @db.Uuid
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  operationalPeriod     OperationalPeriod @relation(fields: [operationalPeriodId], references: [id])
+
+  @@map("iap_forms_207")
+}
+
+model IapForm213 {
+  id               String    @id @default(uuid()) @db.Uuid
+  incidentId       String    @map("incident_id") @db.Uuid
+  messageNumber    String    @map("message_number")
+  toPosition       HicsRole  @map("to_position")
+  toName           String?   @map("to_name")
+  fromPosition     HicsRole  @map("from_position")
+  fromName         String?   @map("from_name")
+  subject          String?
+  messageBody      String?   @map("message_body")
+  replyRequested   Boolean   @default(false) @map("reply_requested")
+  reply            String?
+  sentAt           DateTime  @default(now()) @map("sent_at") @db.Timestamptz
+  repliedAt        DateTime? @map("replied_at") @db.Timestamptz
+  senderUserId     String    @map("sender_user_id") @db.Uuid
+  recipientUserId  String?   @map("recipient_user_id") @db.Uuid
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  incident         Incident  @relation(fields: [incidentId], references: [id])
+  sender           User      @relation("MessageSender", fields: [senderUserId], references: [id])
+
+  @@index([incidentId])
+  @@map("iap_forms_213")
+}
+
+model IapForm215 {
+  id                  String    @id @default(uuid()) @db.Uuid
+  operationalPeriodId String    @unique @map("operational_period_id") @db.Uuid
+  workAssignments     Json?     @map("work_assignments")
+  preparedByUserId    String?   @map("prepared_by_user_id") @db.Uuid
+  preparedAt          DateTime? @map("prepared_at") @db.Timestamptz
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  operationalPeriod   OperationalPeriod @relation(fields: [operationalPeriodId], references: [id])
+  preparedByUser      User?             @relation("Form215PreparedBy", fields: [preparedByUserId], references: [id])
+
+  @@map("iap_forms_215")
+}
+
+model IapForm215a {
+  id                              String    @id @default(uuid()) @db.Uuid
+  operationalPeriodId             String    @unique @map("operational_period_id") @db.Uuid
+  hazardRiskAnalysis              Json?     @map("hazard_risk_analysis")
+  preparedBySafetyOfficerUserId   String?   @map("prepared_by_safety_officer_user_id") @db.Uuid
+  preparedAt                      DateTime? @map("prepared_at") @db.Timestamptz
+  createdAt                       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  operationalPeriod               OperationalPeriod @relation(fields: [operationalPeriodId], references: [id])
+
+  @@map("iap_forms_215a")
+}
+
+model IapFormHics251 {
+  id                    String                @id @default(uuid()) @db.Uuid
+  operationalPeriodId   String                @unique @map("operational_period_id") @db.Uuid
+  reportTime            DateTime?             @map("report_time") @db.Timestamptz
+  facilitySystemsStatus Json?                 @map("facility_systems_status")
+  overallFacilityStatus FacilityOverallStatus? @map("overall_facility_status")
+  preparedByUserId      String?               @map("prepared_by_user_id") @db.Uuid
+  preparedAt            DateTime?             @map("prepared_at") @db.Timestamptz
+  createdAt             DateTime              @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime              @updatedAt @map("updated_at") @db.Timestamptz
+
+  operationalPeriod     OperationalPeriod @relation(fields: [operationalPeriodId], references: [id])
+
+  @@map("iap_forms_hics251")
+}
+
+model IapFormHics252 {
+  id                                    String    @id @default(uuid()) @db.Uuid
+  operationalPeriodId                   String    @unique @map("operational_period_id") @db.Uuid
+  incidentName                          String?   @map("incident_name")
+  incidentNumber                        String?   @map("incident_number")
+  facilityName                          String?   @map("facility_name")
+  operationalPeriodStart                DateTime? @map("operational_period_start") @db.Timestamptz
+  operationalPeriodEnd                  DateTime? @map("operational_period_end") @db.Timestamptz
+  approvedByIncidentCommanderUserId     String?   @map("approved_by_incident_commander_user_id") @db.Uuid
+  approvedAt                            DateTime? @map("approved_at") @db.Timestamptz
+  formsIncluded                         Json?     @map("forms_included")
+  generatedAt                           DateTime? @map("generated_at") @db.Timestamptz
+  iapSignatureCaptured                  Boolean   @default(false) @map("iap_signature_captured")
+  iapSignatureData                      String?   @map("iap_signature_data") // base64, never sent in API response
+  createdAt                             DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                             DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  operationalPeriod                     OperationalPeriod @relation(fields: [operationalPeriodId], references: [id])
+
+  @@map("iap_forms_hics252")
+}
+
+// ─── IAP Templates ───────────────────────────────────────────────────────────
+
+model IapTemplate {
+  id                String       @id @default(uuid()) @db.Uuid
+  facilityId        String?      @map("facility_id") @db.Uuid
+  healthSystemId    String       @map("health_system_id") @db.Uuid
+  name              String
+  description       String?
+  incidentType      IncidentType? @map("incident_type")
+  isActive          Boolean      @default(true) @map("is_active")
+  isSystemDefault   Boolean      @default(false) @map("is_system_default")
+  parentTemplateId  String?      @map("parent_template_id") @db.Uuid
+  version           Int          @default(1)
+  createdBy         String       @map("created_by") @db.Uuid
+  lastModifiedBy    String       @map("last_modified_by") @db.Uuid
+  isDeleted         Boolean      @default(false) @map("is_deleted")
+  deletedAt         DateTime?    @map("deleted_at") @db.Timestamptz
+  createdAt         DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  facility          Facility?    @relation(fields: [facilityId], references: [id])
+  parentTemplate    IapTemplate? @relation("TemplateInheritance", fields: [parentTemplateId], references: [id])
+  childTemplates    IapTemplate[] @relation("TemplateInheritance")
+  formDefaults      IapTemplateFormDefault[]
+  iaps              Iap[]
+
+  @@map("iap_templates")
+}
+
+model IapTemplateFormDefault {
+  id            String      @id @default(uuid()) @db.Uuid
+  templateId    String      @map("template_id") @db.Uuid
+  formNumber    String      @map("form_number")
+  defaultValues Json        @map("default_values")
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  template      IapTemplate @relation(fields: [templateId], references: [id])
+
+  @@unique([templateId, formNumber])
+  @@map("iap_template_form_defaults")
+}
+
+model ObjectivesBank {
+  id            String        @id @default(uuid()) @db.Uuid
+  facilityId    String?       @map("facility_id") @db.Uuid
+  healthSystemId String       @map("health_system_id") @db.Uuid
+  incidentType  IncidentType? @map("incident_type")
+  objectiveText String        @map("objective_text")
+  priority      ObjectivePriority
+  assignedRole  HicsRole?     @map("assigned_role")
+  tags          String[]
+  usageCount    Int           @default(0) @map("usage_count")
+  isActive      Boolean       @default(true) @map("is_active")
+  createdBy     String        @map("created_by") @db.Uuid
+  isDeleted     Boolean       @default(false) @map("is_deleted")
+  deletedAt     DateTime?     @map("deleted_at") @db.Timestamptz
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([facilityId, incidentType])
+  @@map("objectives_bank")
+}
+
+model TacticsBank {
+  id              String    @id @default(uuid()) @db.Uuid
+  facilityId      String?   @map("facility_id") @db.Uuid
+  healthSystemId  String    @map("health_system_id") @db.Uuid
+  branchDivision  String?   @map("branch_division")
+  tacticText      String    @map("tactic_text")
+  tags            String[]
+  usageCount      Int       @default(0) @map("usage_count")
+  isActive        Boolean   @default(true) @map("is_active")
+  createdBy       String    @map("created_by") @db.Uuid
+  isDeleted       Boolean   @default(false) @map("is_deleted")
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("tactics_bank")
+}
+
+// ─── Position Assignments (Org Board) ────────────────────────────────────────
+
+model IncidentPositionAssignment {
+  id                  String    @id @default(uuid()) @db.Uuid
+  incidentId          String    @map("incident_id") @db.Uuid
+  operationalPeriodId String?   @map("operational_period_id") @db.Uuid
+  hicsRole            HicsRole  @map("hics_role")
+  assignedUserId      String?   @map("assigned_user_id") @db.Uuid
+  assignedByUserId    String    @map("assigned_by_user_id") @db.Uuid
+  assignedAt          DateTime  @default(now()) @map("assigned_at") @db.Timestamptz
+  relievedAt          DateTime? @map("relieved_at") @db.Timestamptz
+  isActive            Boolean   @default(true) @map("is_active")
+  notes               String?
+  contactOverride     Json?     @map("contact_override")
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  incident            Incident           @relation(fields: [incidentId], references: [id])
+  operationalPeriod   OperationalPeriod? @relation(fields: [operationalPeriodId], references: [id])
+  assignedUser        User?              @relation("PositionAssignedUser", fields: [assignedUserId], references: [id])
+  assignedByUser      User               @relation("PositionAssignedBy", fields: [assignedByUserId], references: [id])
+
+  @@index([incidentId, hicsRole, isActive])
+  @@map("incident_position_assignments")
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+model Notification {
+  id                String           @id @default(uuid()) @db.Uuid
+  recipientUserId   String           @map("recipient_user_id") @db.Uuid
+  incidentId        String?          @map("incident_id") @db.Uuid
+  type              NotificationType
+  title             String
+  body              String
+  actionUrl         String?          @map("action_url")
+  isRead            Boolean          @default(false) @map("is_read")
+  readAt            DateTime?        @map("read_at") @db.Timestamptz
+  deliveryChannels  Json             @default("{\"in_app\": true, \"email\": false}") @map("delivery_channels")
+  emailSentAt       DateTime?        @map("email_sent_at") @db.Timestamptz
+  createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  recipientUser     User      @relation("NotificationRecipient", fields: [recipientUserId], references: [id])
+  incident          Incident? @relation(fields: [incidentId], references: [id])
+
+  @@index([recipientUserId, isRead])
+  @@map("notifications")
+}
+
+// ─── Export Jobs ──────────────────────────────────────────────────────────────
+
+model ExportJob {
+  id              String          @id @default(uuid()) @db.Uuid
+  jobType         ExportJobType   @default(IAP_PDF) @map("job_type")
+  iapId           String?         @map("iap_id") @db.Uuid        // set for IAP_PDF + ICS213RR_PDF
+  incidentId      String?         @map("incident_id") @db.Uuid   // set for FEMA_PA_XLSX + COST_SUMMARY_PDF
+  requestedBy     String          @map("requested_by") @db.Uuid
+  status          ExportJobStatus @default(PENDING)
+  progress        Int             @default(0)
+  fileUrl         String?         @map("file_url")               // presigned download URL
+  errorMessage    String?         @map("error_message")
+  startedAt       DateTime?       @map("started_at") @db.Timestamptz
+  completedAt     DateTime?       @map("completed_at") @db.Timestamptz
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  iap             Iap?            @relation(fields: [iapId], references: [id])
+  incident        Incident?       @relation(fields: [incidentId], references: [id])
+  requestedByUser User            @relation("ExportJobRequested", fields: [requestedBy], references: [id])
+
+  @@index([incidentId, jobType, status])
+  @@map("export_jobs")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 3 — RESOURCE TRACKING, 213RR, COST LEDGER, FEMA PA EXPORT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Resource Catalog ─────────────────────────────────────────────────────────
+
+// Master list of resource types (NIMS-typed, scoped to health system or facility)
+model ResourceType {
+  id                   String           @id @default(uuid()) @db.Uuid
+  facilityId           String?          @map("facility_id") @db.Uuid       // null = health-system-wide
+  healthSystemId       String           @map("health_system_id") @db.Uuid
+  nimsKind             NimsKind         @map("nims_kind")
+  name                 String
+  description          String?
+  unit                 String                                               // each, box, pallet, hours, etc.
+  category             ResourceCategory
+  defaultCostPerUnit   Decimal?         @map("default_cost_per_unit") @db.Decimal(12, 4)
+  defaultCostUnitPeriod CostUnitPeriod? @map("default_cost_unit_period")
+  isActive             Boolean          @default(true) @map("is_active")
+  isDeleted            Boolean          @default(false) @map("is_deleted")
+  deletedAt            DateTime?        @map("deleted_at") @db.Timestamptz
+  createdBy            String           @map("created_by") @db.Uuid
+  createdAt            DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  facility             Facility?        @relation(fields: [facilityId], references: [id])
+  inventory            FacilityResourceInventory[]
+  incidentResources    IncidentResource[]
+  requestLineItems     ResourceRequestLineItem[]
+
+  @@index([healthSystemId, nimsKind])
+  @@index([facilityId])
+  @@map("resource_types")
+}
+
+// Facility's pre-incident inventory snapshot of each resource type
+model FacilityResourceInventory {
+  id                String       @id @default(uuid()) @db.Uuid
+  facilityId        String       @map("facility_id") @db.Uuid
+  resourceTypeId    String       @map("resource_type_id") @db.Uuid
+  quantityOnHand    Decimal      @default(0) @map("quantity_on_hand") @db.Decimal(10, 2)
+  quantityAvailable Decimal      @default(0) @map("quantity_available") @db.Decimal(10, 2)
+  storageLocation   String?      @map("storage_location")
+  notes             String?
+  lastUpdatedBy     String?      @map("last_updated_by") @db.Uuid
+  createdAt         DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  facility          Facility     @relation(fields: [facilityId], references: [id])
+  resourceType      ResourceType @relation(fields: [resourceTypeId], references: [id])
+
+  @@unique([facilityId, resourceTypeId])
+  @@index([facilityId])
+  @@map("facility_resource_inventory")
+}
+
+// ─── Incident Resources ───────────────────────────────────────────────────────
+
+// A resource record created when a resource is ordered / deployed for an incident.
+// Tracks the full ICS resource lifecycle.
+model IncidentResource {
+  id                    String           @id @default(uuid()) @db.Uuid
+  incidentId            String           @map("incident_id") @db.Uuid
+  facilityId            String           @map("facility_id") @db.Uuid
+  resourceTypeId        String?          @map("resource_type_id") @db.Uuid  // null = ad-hoc (no catalog entry)
+  name                  String                                               // display name / description
+  nimsKind              NimsKind         @map("nims_kind")
+  quantity              Decimal          @default(1) @db.Decimal(10, 2)
+  unit                  String           @default("each")
+  source                ResourceSource   @default(INTERNAL)
+  status                ResourceStatus   @default(ORDERED)
+  resourceIdentifier    String?          @map("resource_identifier")        // license plate, asset tag, etc.
+  homeBaseOrgName       String?          @map("home_base_org_name")
+  homeBaseContact       String?          @map("home_base_contact")
+  requestId             String?          @map("request_id") @db.Uuid        // FK to ResourceRequest
+  eta                   DateTime?        @map("eta") @db.Timestamptz
+  assignedToRole        HicsRole?        @map("assigned_to_role")
+  assignedToLocation    String?          @map("assigned_to_location")
+  costPerUnit           Decimal?         @map("cost_per_unit") @db.Decimal(12, 4)
+  costUnitPeriod        CostUnitPeriod?  @map("cost_unit_period")
+  // Lifecycle timestamps — set when status transitions occur
+  orderedAt             DateTime?        @map("ordered_at") @db.Timestamptz
+  inTransitAt           DateTime?        @map("in_transit_at") @db.Timestamptz
+  assignedAt            DateTime?        @map("assigned_at") @db.Timestamptz
+  availableAt           DateTime?        @map("available_at") @db.Timestamptz
+  outOfServiceAt        DateTime?        @map("out_of_service_at") @db.Timestamptz
+  demobilizedAt         DateTime?        @map("demobilized_at") @db.Timestamptz
+  notes                 String?
+  createdBy             String           @map("created_by") @db.Uuid
+  isDeleted             Boolean          @default(false) @map("is_deleted")
+  deletedAt             DateTime?        @map("deleted_at") @db.Timestamptz
+  createdAt             DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  incident              Incident         @relation(fields: [incidentId], references: [id])
+  facility              Facility         @relation(fields: [facilityId], references: [id])
+  resourceType          ResourceType?    @relation(fields: [resourceTypeId], references: [id])
+  request               ResourceRequest? @relation(fields: [requestId], references: [id])
+  statusHistory         ResourceStatusHistory[]
+  assignments           ResourceAssignment[]
+  fulfillments          RequestFulfillment[]
+  equipmentCostRecords  EquipmentCostRecord[]
+
+  @@index([incidentId, status])
+  @@index([incidentId, nimsKind])
+  @@index([facilityId])
+  @@map("incident_resources")
+}
+
+// Append-only resource status change history.
+// Trigger: prevent_resource_status_history_mutation() (mirrors audit_logs pattern)
+model ResourceStatusHistory {
+  id                 String         @id @default(uuid()) @db.Uuid
+  incidentResourceId String         @map("incident_resource_id") @db.Uuid
+  fromStatus         ResourceStatus? @map("from_status")
+  toStatus           ResourceStatus @map("to_status")
+  changedByUserId    String?        @map("changed_by_user_id") @db.Uuid
+  changedAt          DateTime       @default(now()) @map("changed_at") @db.Timestamptz
+  location           String?
+  notes              String?
+
+  incidentResource   IncidentResource @relation(fields: [incidentResourceId], references: [id])
+
+  @@index([incidentResourceId, changedAt])
+  @@map("resource_status_history")
+}
+
+// Active assignment of an incident resource to a specific role / location / period
+model ResourceAssignment {
+  id                    String             @id @default(uuid()) @db.Uuid
+  incidentResourceId    String             @map("incident_resource_id") @db.Uuid
+  incidentId            String             @map("incident_id") @db.Uuid
+  operationalPeriodId   String?            @map("operational_period_id") @db.Uuid
+  assignedToRole        HicsRole?          @map("assigned_to_role")
+  assignedToLocation    String?            @map("assigned_to_location")
+  assignedByUserId      String             @map("assigned_by_user_id") @db.Uuid
+  assignedAt            DateTime           @default(now()) @map("assigned_at") @db.Timestamptz
+  releasedAt            DateTime?          @map("released_at") @db.Timestamptz
+  taskDescription       String?            @map("task_description")
+  notes                 String?
+  createdAt             DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+
+  incidentResource      IncidentResource   @relation(fields: [incidentResourceId], references: [id])
+  incident              Incident           @relation(fields: [incidentId], references: [id])
+  operationalPeriod     OperationalPeriod? @relation(fields: [operationalPeriodId], references: [id])
+
+  @@index([incidentId, operationalPeriodId])
+  @@index([incidentResourceId])
+  @@map("resource_assignments")
+}
+
+// ─── ICS-213RR Resource Request Workflow ─────────────────────────────────────
+
+// ICS Form 213RR — Resource Request.
+// Auto-numbered: 213RR-{incidentNumber}-{####}
+model ResourceRequest {
+  id                    String          @id @default(uuid()) @db.Uuid
+  requestNumber         String          @map("request_number")              // e.g. 213RR-APGE-2026-0001-0001
+  incidentId            String          @map("incident_id") @db.Uuid
+  facilityId            String          @map("facility_id") @db.Uuid
+  requestedByUserId     String          @map("requested_by_user_id") @db.Uuid
+  priority              RequestPriority @default(ROUTINE)
+  status                RequestStatus   @default(DRAFT)
+  missionAssignment     String?         @map("mission_assignment")
+  requestedForRole      HicsRole?       @map("requested_for_role")
+  requestedForSection   String?         @map("requested_for_section")
+  deliveryLocation      String?         @map("delivery_location")
+  deliveryBy            DateTime?       @map("delivery_by") @db.Timestamptz
+  neededDate            DateTime?       @map("needed_date") @db.Timestamptz
+  estimatedCost         Decimal?        @map("estimated_cost") @db.Decimal(12, 4)
+  justification         String?
+  // Workflow timestamps
+  submittedAt           DateTime?       @map("submitted_at") @db.Timestamptz
+  submittedByUserId     String?         @map("submitted_by_user_id") @db.Uuid
+  approvedAt            DateTime?       @map("approved_at") @db.Timestamptz
+  approvedByUserId      String?         @map("approved_by_user_id") @db.Uuid
+  approvalNotes         String?         @map("approval_notes")
+  deniedAt              DateTime?       @map("denied_at") @db.Timestamptz
+  deniedByUserId        String?         @map("denied_by_user_id") @db.Uuid
+  denialReason          String?         @map("denial_reason")
+  cancelledAt           DateTime?       @map("cancelled_at") @db.Timestamptz
+  cancelledByUserId     String?         @map("cancelled_by_user_id") @db.Uuid
+  isDeleted             Boolean         @default(false) @map("is_deleted")
+  deletedAt             DateTime?       @map("deleted_at") @db.Timestamptz
+  createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  incident              Incident        @relation(fields: [incidentId], references: [id])
+  facility              Facility        @relation(fields: [facilityId], references: [id])
+  requestedByUser       User            @relation("RequestedByUser", fields: [requestedByUserId], references: [id])
+  lineItems             ResourceRequestLineItem[]
+  incidentResources     IncidentResource[]
+
+  @@unique([incidentId, requestNumber])
+  @@index([incidentId, status])
+  @@index([facilityId])
+  @@map("resource_requests")
+}
+
+// Line item within a 213RR request
+model ResourceRequestLineItem {
+  id                   String       @id @default(uuid()) @db.Uuid
+  requestId            String       @map("request_id") @db.Uuid
+  resourceTypeId       String?      @map("resource_type_id") @db.Uuid
+  resourceDescription  String       @map("resource_description")           // free-text if no catalog type
+  quantity             Decimal      @db.Decimal(10, 2)
+  unit                 String       @default("each")
+  estimatedUnitCost    Decimal?     @map("estimated_unit_cost") @db.Decimal(12, 4)
+  estimatedTotalCost   Decimal?     @map("estimated_total_cost") @db.Decimal(12, 4)
+  filledQuantity       Decimal      @default(0) @map("filled_quantity") @db.Decimal(10, 2)
+  notes                String?
+  createdAt            DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  request              ResourceRequest @relation(fields: [requestId], references: [id])
+  resourceType         ResourceType?   @relation(fields: [resourceTypeId], references: [id])
+  fulfillments         RequestFulfillment[]
+
+  @@index([requestId])
+  @@map("resource_request_line_items")
+}
+
+// Records how each line item was fulfilled by actual incident resources
+model RequestFulfillment {
+  id                String            @id @default(uuid()) @db.Uuid
+  lineItemId        String            @map("line_item_id") @db.Uuid
+  incidentResourceId String           @map("incident_resource_id") @db.Uuid
+  quantityFulfilled Decimal           @map("quantity_fulfilled") @db.Decimal(10, 2)
+  fulfilledByUserId String            @map("fulfilled_by_user_id") @db.Uuid
+  fulfilledAt       DateTime          @default(now()) @map("fulfilled_at") @db.Timestamptz
+  notes             String?
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz
+
+  lineItem          ResourceRequestLineItem @relation(fields: [lineItemId], references: [id])
+  incidentResource  IncidentResource        @relation(fields: [incidentResourceId], references: [id])
+
+  @@index([lineItemId])
+  @@map("request_fulfillments")
+}
+
+// ─── Mutual Aid ───────────────────────────────────────────────────────────────
+
+// Pre-negotiated mutual aid agreement with an external organization
+model MutualAidAgreement {
+  id                       String     @id @default(uuid()) @db.Uuid
+  facilityId               String     @map("facility_id") @db.Uuid
+  healthSystemId           String     @map("health_system_id") @db.Uuid
+  partnerOrganizationName  String     @map("partner_organization_name")
+  partnerContactName       String?    @map("partner_contact_name")
+  partnerContactPhone      String?    @map("partner_contact_phone")
+  partnerContactEmail      String?    @map("partner_contact_email")
+  agreementType            String     @map("agreement_type")               // e.g. EMAC, NIMS, bilateral MOU
+  agreementNumber          String?    @map("agreement_number")
+  effectiveDate            DateTime?  @map("effective_date") @db.Date
+  expirationDate           DateTime?  @map("expiration_date") @db.Date
+  resourceCategories       String[]   @map("resource_categories")          // NimsKind values covered
+  terms                    String?
+  isActive                 Boolean    @default(true) @map("is_active")
+  createdBy                String     @map("created_by") @db.Uuid
+  createdAt                DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+
+  facility                 Facility   @relation(fields: [facilityId], references: [id])
+
+  @@index([facilityId])
+  @@index([healthSystemId])
+  @@map("mutual_aid_agreements")
+}
+
+// ─── Cost Ledger ──────────────────────────────────────────────────────────────
+
+// General cost record — one entry per distinct cost event / invoice line
+model CostRecord {
+  id                  String           @id @default(uuid()) @db.Uuid
+  incidentId          String           @map("incident_id") @db.Uuid
+  operationalPeriodId String?          @map("operational_period_id") @db.Uuid
+  costType            CostType         @map("cost_type")
+  femaPACategory      FemaPACategory   @map("fema_pa_category")
+  description         String
+  quantity            Decimal          @default(1) @db.Decimal(10, 3)
+  unitCost            Decimal          @map("unit_cost") @db.Decimal(12, 4)
+  totalCost           Decimal          @map("total_cost") @db.Decimal(14, 4) // computed: qty × unitCost
+  vendor              String?
+  invoiceNumber       String?          @map("invoice_number")
+  documentationUrl    String?          @map("documentation_url")
+  incurredAt          DateTime         @map("incurred_at") @db.Timestamptz
+  recordedByUserId    String           @map("recorded_by_user_id") @db.Uuid
+  isApproved          Boolean          @default(false) @map("is_approved")
+  approvedByUserId    String?          @map("approved_by_user_id") @db.Uuid
+  approvedAt          DateTime?        @map("approved_at") @db.Timestamptz
+  notes               String?
+  isDeleted           Boolean          @default(false) @map("is_deleted")
+  deletedAt           DateTime?        @map("deleted_at") @db.Timestamptz
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  incident            Incident         @relation(fields: [incidentId], references: [id])
+  operationalPeriod   OperationalPeriod? @relation(fields: [operationalPeriodId], references: [id])
+  recordedByUser      User             @relation("CostRecordedBy", fields: [recordedByUserId], references: [id])
+  laborCostRecord     LaborCostRecord?
+  equipmentCostRecord EquipmentCostRecord?
+
+  @@index([incidentId, costType])
+  @@index([incidentId, femaPACategory])
+  @@index([incidentId, operationalPeriodId])
+  @@map("cost_records")
+}
+
+// Labor detail — linked 1:1 to a CostRecord with costType = LABOR
+model LaborCostRecord {
+  id              String      @id @default(uuid()) @db.Uuid
+  costRecordId    String      @unique @map("cost_record_id") @db.Uuid
+  userId          String?     @map("user_id") @db.Uuid                // null = external / contracted labor
+  employeeId      String?     @map("employee_id")
+  position        String?                                              // job title / HICS role
+  regularHours    Decimal     @default(0) @map("regular_hours") @db.Decimal(8, 2)
+  overtimeHours   Decimal     @default(0) @map("overtime_hours") @db.Decimal(8, 2)
+  regularRate     Decimal     @default(0) @map("regular_rate") @db.Decimal(10, 4)  // $/hr
+  overtimeRate    Decimal     @default(0) @map("overtime_rate") @db.Decimal(10, 4) // $/hr (usually 1.5×)
+  benefits        Decimal     @default(0) @db.Decimal(10, 4)          // fringe benefits added on top
+  totalLaborCost  Decimal     @map("total_labor_cost") @db.Decimal(14, 4)
+  periodStart     DateTime?   @map("period_start") @db.Timestamptz
+  periodEnd       DateTime?   @map("period_end") @db.Timestamptz
+  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  costRecord      CostRecord  @relation(fields: [costRecordId], references: [id])
+  user            User?       @relation("LaborCostUser", fields: [userId], references: [id])
+
+  @@index([costRecordId])
+  @@map("labor_cost_records")
+}
+
+// Equipment detail — linked 1:1 to a CostRecord with costType = EQUIPMENT
+model EquipmentCostRecord {
+  id                    String            @id @default(uuid()) @db.Uuid
+  costRecordId          String            @unique @map("cost_record_id") @db.Uuid
+  incidentResourceId    String?           @map("incident_resource_id") @db.Uuid // FK to deployed resource
+  equipmentType         String            @map("equipment_type")
+  equipmentIdentifier   String?           @map("equipment_identifier")          // asset tag / license plate
+  hours                 Decimal           @default(0) @db.Decimal(8, 2)
+  dailyRate             Decimal           @default(0) @map("daily_rate") @db.Decimal(10, 4)
+  mileage               Decimal           @default(0) @db.Decimal(10, 2)
+  mileageRate           Decimal           @default(0) @map("mileage_rate") @db.Decimal(8, 4) // $/mile
+  totalEquipmentCost    Decimal           @map("total_equipment_cost") @db.Decimal(14, 4)
+  operator              String?
+  createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  costRecord            CostRecord        @relation(fields: [costRecordId], references: [id])
+  incidentResource      IncidentResource? @relation(fields: [incidentResourceId], references: [id])
+
+  @@index([costRecordId])
+  @@map("equipment_cost_records")
+}
+
+// ─── Cost Rollups ─────────────────────────────────────────────────────────────
+
+// Pre-computed cost snapshot (refreshed every 15 min by cron + on-demand).
+// NEVER aggregate cost_records at query time — always read from this table.
+model CostRollup {
+  id                   String             @id @default(uuid()) @db.Uuid
+  incidentId           String             @map("incident_id") @db.Uuid
+  operationalPeriodId  String?            @unique @map("operational_period_id") @db.Uuid // null = incident total
+  computedAt           DateTime           @default(now()) @map("computed_at") @db.Timestamptz
+  totalCost            Decimal            @map("total_cost") @db.Decimal(16, 4)
+  laborCost            Decimal            @map("labor_cost") @db.Decimal(14, 4)
+  equipmentCost        Decimal            @map("equipment_cost") @db.Decimal(14, 4)
+  supplyCost           Decimal            @map("supply_cost") @db.Decimal(14, 4)
+  contractCost         Decimal            @map("contract_cost") @db.Decimal(14, 4)
+  overheadCost         Decimal            @map("overhead_cost") @db.Decimal(14, 4)
+  // FEMA PA breakdown — { "CAT_A": 1000.00, "CAT_B": 5000.00, ... }
+  costByFemaCategory   Json               @map("cost_by_fema_category")
+  // Period-by-period breakdown for trend charts — [{ periodNumber, totalCost }, ...]
+  costByPeriod         Json               @map("cost_by_period")
+  laborHours           Decimal            @default(0) @map("labor_hours") @db.Decimal(12, 2)
+  equipmentHours       Decimal            @default(0) @map("equipment_hours") @db.Decimal(12, 2)
+  headcount            Int                @default(0)
+  approvedCost         Decimal            @map("approved_cost") @db.Decimal(16, 4)
+  unapprovedCost       Decimal            @map("unapproved_cost") @db.Decimal(16, 4)
+  recordCount          Int                @default(0) @map("record_count")
+  createdAt            DateTime           @default(now()) @map("created_at") @db.Timestamptz
+
+  incident             Incident           @relation(fields: [incidentId], references: [id])
+  operationalPeriod    OperationalPeriod? @relation(fields: [operationalPeriodId], references: [id])
+
+  @@index([incidentId, computedAt])
+  @@map("cost_rollups")
+}

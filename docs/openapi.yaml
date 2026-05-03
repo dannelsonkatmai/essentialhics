@@ -1,0 +1,897 @@
+openapi: 3.1.0
+info:
+  title: Essential HICS API
+  description: |
+    Hospital Incident Command System — Phase 1 REST API.
+    Covers authentication, RBAC, organizational structure, and audit logging.
+  version: 1.0.0
+  contact:
+    name: HICS Support
+    email: support@apexhealth.example
+
+servers:
+  - url: http://localhost:3001
+    description: Local development
+  - url: https://api.hics.yourhospital.org
+    description: Production
+
+tags:
+  - name: Authentication
+    description: Login, token refresh, MFA, password management
+  - name: Users
+    description: User CRUD, role assignments, session management
+  - name: Facilities
+    description: Facility management, departments, org chart
+  - name: Audit Log
+    description: Immutable audit trail (HIPAA)
+  - name: Health System
+    description: System-level settings
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message: { type: string }
+      required: [message]
+
+    ValidationError:
+      type: object
+      properties:
+        message: { type: string }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }
+
+    AuthUser:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        firstName: { type: string }
+        lastName: { type: string }
+        displayName: { type: string }
+        mustChangePassword: { type: boolean }
+        mfaEnabled: { type: boolean }
+
+    LoginResponse:
+      type: object
+      properties:
+        accessToken: { type: string, description: "JWT — store in memory only" }
+        user: { $ref: '#/components/schemas/AuthUser' }
+        mfaRequired: { type: boolean }
+        userId: { type: string, format: uuid, description: "Only present when mfaRequired=true" }
+
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        firstName: { type: string }
+        lastName: { type: string }
+        displayName: { type: string }
+        jobTitle: { type: string }
+        employeeId: { type: string }
+        phoneMobile: { type: string }
+        phoneWork: { type: string }
+        pagerNumber: { type: string }
+        authProvider: { type: string, enum: [LOCAL, AZURE_AD, OKTA] }
+        isActive: { type: boolean }
+        isLocked: { type: boolean }
+        lastLoginAt: { type: string, format: date-time }
+        passwordChangedAt: { type: string, format: date-time }
+        mustChangePassword: { type: boolean }
+        mfaEnabled: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        userFacilityRoles:
+          type: array
+          items: { $ref: '#/components/schemas/UserFacilityRole' }
+
+    UserFacilityRole:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        facilityId: { type: string, format: uuid }
+        hicsRole: { $ref: '#/components/schemas/HicsRole' }
+        isPrimaryFacility: { type: boolean }
+        assignedAt: { type: string, format: date-time }
+        facility:
+          type: object
+          properties:
+            name: { type: string }
+            shortName: { type: string }
+
+    HicsRole:
+      type: string
+      enum:
+        - SYSTEM_ADMIN
+        - SYSTEM_VIEWER
+        - FACILITY_ADMIN
+        - INCIDENT_COMMANDER
+        - DEPUTY_INCIDENT_COMMANDER
+        - PUBLIC_INFORMATION_OFFICER
+        - SAFETY_OFFICER
+        - LIAISON_OFFICER
+        - MEDICAL_TECHNICAL_SPECIALIST
+        - OPERATIONS_SECTION_CHIEF
+        - PLANNING_SECTION_CHIEF
+        - LOGISTICS_SECTION_CHIEF
+        - FINANCE_ADMIN_SECTION_CHIEF
+        - MEDICAL_CARE_BRANCH_DIRECTOR
+        - INFRASTRUCTURE_BRANCH_DIRECTOR
+        - SECURITY_BRANCH_DIRECTOR
+        - BUSINESS_CONTINUITY_BRANCH_DIRECTOR
+        - HAZMAT_BRANCH_DIRECTOR
+        - PATIENT_FAMILY_INFORMATION_BRANCH_DIRECTOR
+        - RESOURCES_UNIT_LEADER
+        - SITUATION_UNIT_LEADER
+        - DOCUMENTATION_UNIT_LEADER
+        - DEMOBILIZATION_UNIT_LEADER
+        - SERVICE_BRANCH_DIRECTOR
+        - SUPPORT_BRANCH_DIRECTOR
+        - COMMUNICATIONS_UNIT_LEADER
+        - IT_SYSTEMS_UNIT_LEADER
+        - STAFF_FOOD_WATER_UNIT_LEADER
+        - TRANSPORTATION_UNIT_LEADER
+        - FACILITIES_UNIT_LEADER
+        - SUPPLY_UNIT_LEADER
+        - LABOR_POOL_CREDENTIALS_UNIT_LEADER
+        - TIME_UNIT_LEADER
+        - PROCUREMENT_UNIT_LEADER
+        - COMPENSATION_CLAIMS_UNIT_LEADER
+        - COST_UNIT_LEADER
+        - RESPONDER
+        - READ_ONLY_OBSERVER
+
+    Facility:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        shortName: { type: string }
+        address:
+          type: object
+          properties:
+            street: { type: string }
+            city: { type: string }
+            state: { type: string }
+            zip: { type: string }
+        phone: { type: string }
+        fax: { type: string }
+        licenseNumber: { type: string }
+        facilityType: { type: string, enum: [HOSPITAL, CLINIC, ALTERNATE_CARE_SITE, OTHER] }
+        isActive: { type: boolean }
+        timezone: { type: string, example: "America/New_York" }
+        emergencyContactName: { type: string }
+        emergencyContactPhone: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    AuditLog:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        timestamp: { type: string, format: date-time }
+        actorUserId: { type: string, format: uuid }
+        actorIpAddress: { type: string }
+        actorUserAgent: { type: string }
+        facilityId: { type: string, format: uuid }
+        action:
+          type: string
+          enum:
+            - USER_LOGIN
+            - USER_LOGIN_FAILED
+            - USER_LOGOUT
+            - USER_LOCKED
+            - USER_CREATED
+            - USER_UPDATED
+            - USER_DEACTIVATED
+            - USER_ROLE_ASSIGNED
+            - USER_ROLE_REMOVED
+            - USER_PASSWORD_RESET
+            - USER_MFA_ENROLLED
+            - USER_MFA_DISABLED
+            - USER_SESSION_REVOKED
+            - FACILITY_CREATED
+            - FACILITY_UPDATED
+            - SETTINGS_UPDATED
+        resourceType: { type: string }
+        resourceId: { type: string }
+        changes:
+          type: object
+          properties:
+            before: { type: object }
+            after: { type: object }
+        metadata: { type: object }
+
+    Pagination:
+      type: object
+      properties:
+        page: { type: integer }
+        limit: { type: integer }
+        total: { type: integer }
+        totalPages: { type: integer }
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ── Authentication ───────────────────────────────────────────────────────────
+
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Login with email and password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200':
+          description: Login successful or MFA required
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+          headers:
+            Set-Cookie:
+              description: HttpOnly refresh token cookie (hics_refresh)
+              schema: { type: string }
+        '400': { description: Validation error, content: { application/json: { schema: { $ref: '#/components/schemas/ValidationError' } } } }
+        '401': { description: Invalid credentials or account locked }
+        '429': { description: Rate limit exceeded }
+
+  /auth/mfa/verify:
+    post:
+      tags: [Authentication]
+      summary: Complete login by verifying TOTP or backup code
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, code]
+              properties:
+                userId: { type: string, format: uuid }
+                code: { type: string }
+                isBackupCode: { type: boolean, default: false }
+      responses:
+        '200':
+          description: MFA verified, full session created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '401': { description: Invalid MFA code }
+
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Rotate refresh token, get new access token
+      description: Reads the HttpOnly refresh cookie. Rotates the token on every call.
+      security: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken: { type: string }
+        '401': { description: Refresh token missing, invalid, or expired }
+
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Revoke current session
+      responses:
+        '200': { description: Session revoked }
+
+  /auth/forgot-password:
+    post:
+      tags: [Authentication]
+      summary: Request password reset email
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '200': { description: Always 200 — email sent if address is registered }
+
+  /auth/reset-password:
+    post:
+      tags: [Authentication]
+      summary: Reset password with token from email
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token: { type: string }
+                password: { type: string, minLength: 12 }
+      responses:
+        '200': { description: Password reset successfully }
+        '400': { description: Invalid/expired token or weak password }
+
+  /auth/change-password:
+    post:
+      tags: [Authentication]
+      summary: Change password (authenticated)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword: { type: string }
+                newPassword: { type: string, minLength: 12 }
+      responses:
+        '200': { description: Password changed; other sessions revoked }
+        '401': { description: Current password incorrect }
+
+  /auth/mfa/enroll:
+    post:
+      tags: [Authentication]
+      summary: Begin MFA enrollment — returns QR code and backup codes
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  secret: { type: string }
+                  qrCodeDataUrl: { type: string }
+                  backupCodes:
+                    type: array
+                    items: { type: string }
+
+  /auth/mfa/disable:
+    post:
+      tags: [Authentication]
+      summary: Disable MFA for the authenticated user
+      responses:
+        '200': { description: MFA disabled }
+
+  /auth/mfa/backup-codes/regenerate:
+    post:
+      tags: [Authentication]
+      summary: Regenerate MFA backup codes (invalidates existing)
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  backupCodes: { type: array, items: { type: string } }
+
+  # ── Users ─────────────────────────────────────────────────────────────────────
+
+  /api/users:
+    get:
+      tags: [Users]
+      summary: List users (paginated, filterable)
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 25, maximum: 100 }
+        - in: query
+          name: facilityId
+          schema: { type: string, format: uuid }
+        - in: query
+          name: role
+          schema: { $ref: '#/components/schemas/HicsRole' }
+        - in: query
+          name: status
+          schema: { type: string, enum: [active, inactive, locked] }
+        - in: query
+          name: search
+          schema: { type: string }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/User' }
+                  pagination: { $ref: '#/components/schemas/Pagination' }
+
+  /api/users/{id}:
+    get:
+      tags: [Users]
+      summary: Get user by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '404': { description: User not found }
+
+    put:
+      tags: [Users]
+      summary: Update user profile
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName: { type: string }
+                lastName: { type: string }
+                displayName: { type: string }
+                jobTitle: { type: string }
+                phoneMobile: { type: string }
+                phoneWork: { type: string }
+                pagerNumber: { type: string }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+
+  /api/users/{id}/deactivate:
+    patch:
+      tags: [Users]
+      summary: Deactivate a user (revokes all sessions)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: User deactivated }
+
+  /api/users/{id}/roles:
+    post:
+      tags: [Users]
+      summary: Assign a HICS role at a facility
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [facilityId, hicsRole]
+              properties:
+                facilityId: { type: string, format: uuid }
+                hicsRole: { $ref: '#/components/schemas/HicsRole' }
+                isPrimaryFacility: { type: boolean, default: false }
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserFacilityRole' }
+
+  /api/users/{id}/roles/{roleId}:
+    delete:
+      tags: [Users]
+      summary: Remove a role assignment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: path
+          name: roleId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Role removed }
+
+  /api/users/{id}/sessions/{sessionId}/revoke:
+    post:
+      tags: [Users]
+      summary: Revoke a specific session
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: path
+          name: sessionId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Session revoked }
+
+  # ── Facilities ────────────────────────────────────────────────────────────────
+
+  /api/facilities:
+    get:
+      tags: [Facilities]
+      summary: List all facilities
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Facility' }
+
+    post:
+      tags: [Facilities]
+      summary: Create a new facility
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, shortName, address]
+              properties:
+                name: { type: string }
+                shortName: { type: string }
+                address:
+                  type: object
+                  required: [street, city, state, zip]
+                  properties:
+                    street: { type: string }
+                    city: { type: string }
+                    state: { type: string, minLength: 2, maxLength: 2 }
+                    zip: { type: string }
+                phone: { type: string }
+                fax: { type: string }
+                facilityType: { type: string, enum: [HOSPITAL, CLINIC, ALTERNATE_CARE_SITE, OTHER] }
+                timezone: { type: string }
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Facility' }
+
+  /api/facilities/{id}:
+    get:
+      tags: [Facilities]
+      summary: Get facility by ID (includes departments)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Facility' }
+
+    put:
+      tags: [Facilities]
+      summary: Update facility
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Facility' }
+
+  /api/facilities/{id}/departments:
+    get:
+      tags: [Facilities]
+      summary: List departments for a facility
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string, format: uuid }
+                    name: { type: string }
+                    code: { type: string }
+                    parentDepartmentId: { type: string, format: uuid }
+
+    post:
+      tags: [Facilities]
+      summary: Create a department
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, code]
+              properties:
+                name: { type: string }
+                code: { type: string }
+                parentDepartmentId: { type: string, format: uuid }
+      responses:
+        '201': { description: Department created }
+
+  /api/facilities/{id}/users:
+    get:
+      tags: [Facilities]
+      summary: List users assigned to a facility
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 25 }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array }
+                  pagination: { $ref: '#/components/schemas/Pagination' }
+
+    post:
+      tags: [Facilities]
+      summary: Create and add a user to this facility
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, firstName, lastName, hicsRole]
+              properties:
+                email: { type: string, format: email }
+                firstName: { type: string }
+                lastName: { type: string }
+                jobTitle: { type: string }
+                employeeId: { type: string }
+                phoneMobile: { type: string }
+                hicsRole: { $ref: '#/components/schemas/HicsRole' }
+      responses:
+        '201': { description: User created and invite email sent }
+
+  /api/facilities/{id}/users/import:
+    post:
+      tags: [Facilities]
+      summary: Bulk import users from CSV
+      description: |
+        Validates all rows before importing any. Returns row-by-row errors on failure.
+        CSV columns: first_name, last_name, email, job_title, employee_id, phone_mobile, hics_role
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  created: { type: integer }
+                  skipped: { type: integer }
+                  skippedEmails: { type: array, items: { type: string } }
+        '422':
+          description: Validation failed — no users were imported
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        row: { type: integer }
+                        errors: { type: array, items: { type: string } }
+
+  /api/facilities/{id}/positions:
+    get:
+      tags: [Facilities]
+      summary: Get HICS org chart positions for a facility
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string, format: uuid }
+                    hicsRole: { $ref: '#/components/schemas/HicsRole' }
+                    displayName: { type: string }
+                    reportsToRole: { $ref: '#/components/schemas/HicsRole' }
+
+  # ── Audit Log ──────────────────────────────────────────────────────────────────
+
+  /api/audit-logs:
+    get:
+      tags: [Audit Log]
+      summary: List audit log events (paginated, filterable)
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 50, maximum: 500 }
+        - in: query
+          name: startDate
+          schema: { type: string, format: date-time }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date-time }
+        - in: query
+          name: actorUserId
+          schema: { type: string, format: uuid }
+        - in: query
+          name: facilityId
+          schema: { type: string, format: uuid }
+        - in: query
+          name: action
+          schema: { type: string }
+        - in: query
+          name: resourceType
+          schema: { type: string }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/AuditLog' }
+                  pagination: { $ref: '#/components/schemas/Pagination' }
+
+  /api/audit-logs/export:
+    get:
+      tags: [Audit Log]
+      summary: Export audit logs as CSV
+      parameters:
+        - in: query
+          name: startDate
+          schema: { type: string, format: date-time }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date-time }
+        - in: query
+          name: facilityId
+          schema: { type: string, format: uuid }
+        - in: query
+          name: action
+          schema: { type: string }
+      responses:
+        '200':
+          description: CSV file download
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
+
+  # ── Health System ─────────────────────────────────────────────────────────────
+
+  /api/health-system/settings:
+    get:
+      tags: [Health System]
+      summary: Get health system settings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  name: { type: string }
+                  shortName: { type: string }
+                  settings:
+                    type: object
+                    properties:
+                      mfaPolicy: { type: string, enum: [REQUIRED, ADMIN_REQUIRED, OPTIONAL] }
+                      maxConcurrentSessions: { type: integer }
+                      passwordExpiryDays: { type: integer }
+                      sessionTimeoutMinutes: { type: integer }
+
+    put:
+      tags: [Health System]
+      summary: Update health system settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mfaPolicy: { type: string, enum: [REQUIRED, ADMIN_REQUIRED, OPTIONAL] }
+                maxConcurrentSessions: { type: integer, minimum: 1, maximum: 10 }
+                passwordExpiryDays: { type: integer, minimum: 30, maximum: 365 }
+                sessionTimeoutMinutes: { type: integer, minimum: 15, maximum: 1440 }
+      responses:
+        '200': { description: Settings updated }
