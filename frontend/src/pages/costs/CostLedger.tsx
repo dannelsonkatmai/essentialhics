@@ -13,9 +13,7 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
-import {
-  DollarSign, Plus, Download, RefreshCw, CheckCircle, Loader,
-} from 'lucide-react';
+import { DollarSign, Plus, Download, RefreshCw, CircleCheck as CheckCircle, Loader } from 'lucide-react';
 import { useAuthStore } from '../../stores/auth.store';
 import { costsApi } from '../../api/costs.api';
 import { AddCostSlideOver } from '../../components/costs/AddCostSlideOver';
@@ -252,7 +250,10 @@ export default function CostLedger() {
       return res.data as { status: string; fileUrl?: string; errorMessage?: string };
     },
     enabled: !!exportJobId,
-    refetchInterval: exportJob?.status === 'COMPLETED' || exportJob?.status === 'FAILED' ? false : 3000,
+    refetchInterval: (query) => {
+      const d = query.state.data as { status: string } | undefined;
+      return d?.status === 'COMPLETED' || d?.status === 'FAILED' ? false : 3000;
+    },
   });
 
   const costTypes = ['LABOR', 'EQUIPMENT', 'SUPPLY', 'CONTRACT', 'OVERHEAD'];

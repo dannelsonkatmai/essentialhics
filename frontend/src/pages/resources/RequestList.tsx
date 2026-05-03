@@ -195,7 +195,7 @@ export default function RequestList() {
   const { data: requests = [], isLoading } = useQuery({
     queryKey: ['requests', incidentId, statusFilter],
     queryFn: async () => {
-      const params = statusFilter ? { status: statusFilter } : {};
+      const params: Record<string, string> = statusFilter ? { status: statusFilter } : {};
       const res = await requestsApi.list(facilityId, incidentId!, params);
       return res.data as ResourceRequest[];
     },

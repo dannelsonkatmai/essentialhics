@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import { TriangleAlert as AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { authApi } from '../api/auth.api';
 import { useAuthStore } from '../stores/auth.store';
 
@@ -30,17 +30,17 @@ export default function LoginPage() {
     try {
       const { data: resp } = await authApi.login(data.email, data.password);
 
-      if (resp.mfaRequired && resp.userId) {
-        navigate('/mfa/verify', { state: { userId: resp.userId } });
+      if (resp.mfaRequired) {
+        navigate('/mfa/verify', { state: { userId: resp.user?.id } });
         return;
       }
 
       if (resp.accessToken && resp.user) {
-        setUser(resp.user, resp.accessToken);
+        setUser(resp.user);
         if (resp.user.mustChangePassword) {
           navigate('/profile?tab=security&action=change-password');
         } else {
-          navigate('/admin/users');
+          navigate('/incidents');
         }
       }
     } catch (err: any) {

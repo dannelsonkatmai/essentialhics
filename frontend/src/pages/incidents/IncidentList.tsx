@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, AlertTriangle, CheckCircle, Clock, Filter } from 'lucide-react';
+import { Plus, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle, Clock, ListFilter as Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { incidentsApi, Incident } from '../../api/incidents.api';
 import { useAuthStore } from '../../stores/auth.store';
@@ -23,7 +23,7 @@ const SEVERITY_LABELS: Record<string, string> = {
 
 export default function IncidentList() {
   const user = useAuthStore((s) => s.user);
-  const facilityId = user?.roles[0]?.facilityId ?? '';
+  const facilityId = user?.roles?.[0]?.facilityId ?? '';
   const [showCreate, setShowCreate] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [page, setPage] = useState(1);

@@ -5,7 +5,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ShieldCheck } from 'lucide-react';
 import { authApi } from '../api/auth.api';
-import { useAuthStore } from '../stores/auth.store';
 
 const schema = z.object({ code: z.string().min(4, 'Enter your 6-digit code') });
 type FormData = z.infer<typeof schema>;
@@ -13,7 +12,6 @@ type FormData = z.infer<typeof schema>;
 export default function MfaVerifyPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setUser } = useAuthStore();
   const userId = (location.state as { userId?: string })?.userId;
 
   const [useBackup, setUseBackup] = useState(false);
@@ -33,9 +31,8 @@ export default function MfaVerifyPage() {
     setServerError('');
     setIsLoading(true);
     try {
-      const { data } = await authApi.mfaVerify(userId, code, useBackup);
-      setUser(data.user, data.accessToken);
-      navigate('/admin/users');
+      await authApi.mfaVerify(userId, code, useBackup);
+      navigate('/incidents');
     } catch (err: any) {
       setServerError(err.response?.data?.message ?? 'Invalid code. Please try again.');
     } finally {

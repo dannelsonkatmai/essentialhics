@@ -1,43 +1,82 @@
-import { apiClient } from './client';
+import { supabase } from '../lib/supabase';
 import type { AuthUser } from '../types';
 
-export interface LoginResponse {
-  accessToken?: string;
-  user?: AuthUser;
-  mfaRequired?: boolean;
-  userId?: string;
+function sessionToAuthUser(session: { user: { id: string; email?: string; user_metadata?: Record<string, unknown> } }): AuthUser {
+  const meta = session.user.user_metadata ?? {};
+  return {
+    id: session.user.id,
+    email: session.user.email ?? '',
+    firstName: (meta.first_name as string) ?? (meta.firstName as string) ?? '',
+    lastName: (meta.last_name as string) ?? (meta.lastName as string) ?? '',
+    displayName: (meta.display_name as string) ?? undefined,
+    mustChangePassword: false,
+    mfaEnabled: false,
+  };
 }
 
 export const authApi = {
-  login: (email: string, password: string) =>
-    apiClient.post<LoginResponse>('/auth/login', { email, password }),
+  login: async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw { response: { data: { message: error.message } } };
+    if (!data.session) throw { response: { data: { message: 'Login failed' } } };
+    return {
+      data: {
+        accessToken: data.session.access_token,
+        user: sessionToAuthUser(data.session),
+        mfaRequired: false,
+      },
+    };
+  },
 
-  mfaVerify: (userId: string, code: string, isBackupCode = false) =>
-    apiClient.post<{ accessToken: string; user: AuthUser }>('/auth/mfa/verify', {
-      userId, code, isBackupCode,
-    }),
+  logout: async () => {
+    await supabase.auth.signOut();
+    return { data: {} };
+  },
 
-  refresh: () =>
-    apiClient.post<{ accessToken: string }>('/auth/refresh'),
+  refresh: async () => {
+    const { data, error } = await supabase.auth.getSession();
+    if (error || !data.session) throw new Error('No session');
+    return { data: { accessToken: data.session.access_token } };
+  },
 
-  logout: () =>
-    apiClient.post('/auth/logout'),
+  getUser: async (): Promise<AuthUser | null> => {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) return null;
+    return sessionToAuthUser(data.session);
+  },
 
-  forgotPassword: (email: string) =>
-    apiClient.post('/auth/forgot-password', { email }),
+  forgotPassword: async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    if (error) throw { response: { data: { message: error.message } } };
+    return { data: {} };
+  },
 
-  resetPassword: (token: string, password: string) =>
-    apiClient.post('/auth/reset-password', { token, password }),
+  resetPassword: async (_token: string, password: string) => {
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) throw { response: { data: { message: error.message } } };
+    return { data: {} };
+  },
 
-  changePassword: (currentPassword: string, newPassword: string) =>
-    apiClient.post('/auth/change-password', { currentPassword, newPassword }),
+  changePassword: async (_currentPassword: string, newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw { response: { data: { message: error.message } } };
+    return { data: {} };
+  },
 
-  enrollMfa: () =>
-    apiClient.post<{ secret: string; qrCodeDataUrl: string; backupCodes: string[] }>('/auth/mfa/enroll'),
+  // MFA stubs — not supported in this migration layer
+  mfaVerify: async (_userId: string, _code: string, _isBackupCode = false) => {
+    throw { response: { data: { message: 'MFA not configured' } } };
+  },
 
-  disableMfa: () =>
-    apiClient.post('/auth/mfa/disable'),
+  enrollMfa: async () => {
+    throw { response: { data: { message: 'MFA enrollment not configured' } } };
+  },
 
-  regenerateBackupCodes: () =>
-    apiClient.post<{ backupCodes: string[] }>('/auth/mfa/backup-codes/regenerate'),
+  disableMfa: async () => {
+    throw { response: { data: { message: 'MFA not configured' } } };
+  },
+
+  regenerateBackupCodes: async () => {
+    throw { response: { data: { message: 'MFA not configured' } } };
+  },
 };

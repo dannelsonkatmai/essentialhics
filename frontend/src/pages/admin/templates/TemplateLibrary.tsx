@@ -8,7 +8,7 @@ type Tab = 'templates' | 'objectives' | 'tactics';
 
 export default function TemplateLibrary() {
   const user = useAuthStore(s => s.user);
-  const facilityId = user?.roles[0]?.facilityId;
+  const facilityId = user?.roles?.[0]?.facilityId;
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>('templates');
   const [showCreateTemplate, setShowCreateTemplate] = useState(false);

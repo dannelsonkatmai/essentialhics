@@ -29,6 +29,11 @@ export type Permission =
   | 'audit_log:read'
   | 'report:read' | 'report:export';
 
+export interface AuthUserRole {
+  facilityId: string;
+  hicsRole: HicsRole;
+}
+
 export interface AuthUser {
   id: string;
   email: string;
@@ -37,6 +42,9 @@ export interface AuthUser {
   displayName?: string;
   mustChangePassword: boolean;
   mfaEnabled: boolean;
+  roles?: AuthUserRole[];
+  facilityIds?: string[];
+  primaryFacilityId?: string;
 }
 
 export interface UserFacilityRole {

@@ -20,10 +20,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import {
-  LayoutGrid, List, Layers, Plus, CheckSquare, Package,
-  AlertTriangle, Clock, ArrowRight, X,
-} from 'lucide-react';
+import { LayoutGrid, List, Layers, Plus, SquareCheck as CheckSquare, Package, TriangleAlert as AlertTriangle, Clock, ArrowRight, X } from 'lucide-react';
 import { useAuthStore } from '../../stores/auth.store';
 import { resourcesApi } from '../../api/resources.api';
 import { useIncidentSocket } from '../../hooks/useSocket';
@@ -367,7 +364,7 @@ export default function ResourceStatusBoard() {
   const { data: resources = [], isLoading } = useQuery({
     queryKey: ['incident-resources', incidentId, statusFilter],
     queryFn: async () => {
-      const params = statusFilter ? { status: statusFilter } : {};
+      const params: Record<string, string> = statusFilter ? { status: statusFilter } : {};
       const res = await resourcesApi.list(facilityId, incidentId!, params);
       return res.data as IncidentResource[];
     },

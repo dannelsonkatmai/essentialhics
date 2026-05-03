@@ -10,7 +10,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Package, Clock, MapPin, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '../../stores/auth.store';
 import { resourcesApi } from '../../api/resources.api';
-import StatusTransitionModal from '../../components/resources/StatusTransitionModal';
+import { StatusTransitionModal } from '../../components/resources/StatusTransitionModal';
 
 interface StatusHistory {
   id: string;
@@ -37,6 +37,7 @@ interface IncidentResource {
   status: string;
   source: string;
   name: string;
+  nimsKind: string;
   quantity: number;
   unit: string;
   vendor?: string;
@@ -356,11 +357,11 @@ export default function ResourceDetail() {
       {/* Transition modal */}
       {showTransition && resource && (
         <StatusTransitionModal
-          resource={{ id: resource.id, status: resource.status as any, name: resource.name }}
+          resource={{ id: resource.id, status: resource.status as any, name: resource.name, nimsKind: resource.nimsKind }}
           facilityId={facilityId}
           incidentId={incidentId!}
           onClose={() => setShowTransition(false)}
-          onSuccess={onTransitionSuccess}
+          onTransitioned={onTransitionSuccess}
         />
       )}
     </div>

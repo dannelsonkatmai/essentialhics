@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { User, Shield, Monitor, Eye, EyeOff, CheckCircle, Download, AlertTriangle } from 'lucide-react';
+import { User, Shield, Monitor, Eye, EyeOff, CircleCheck as CheckCircle, Download, TriangleAlert as AlertTriangle } from 'lucide-react';
 import { useAuthStore } from '../../stores/auth.store';
 import { authApi } from '../../api/auth.api';
 import { usersApi } from '../../api/users.api';
@@ -62,7 +62,7 @@ export default function ProfilePage() {
 
   const regenBackupCodes = useMutation({
     mutationFn: () => authApi.regenerateBackupCodes(),
-    onSuccess: ({ data }) => setBackupCodes(data.backupCodes),
+    onSuccess: (result: any) => setBackupCodes(result?.data?.backupCodes ?? []),
   });
 
   const revokeSession = useMutation({

@@ -2,10 +2,7 @@ import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import {
-  AlertTriangle, Clock, Users, FileText, Network,
-  Plus, ChevronRight, CheckCircle, XCircle
-} from 'lucide-react';
+import { TriangleAlert as AlertTriangle, Clock, Users, FileText, Network, Plus, ChevronRight, CircleCheck as CheckCircle, Circle as XCircle } from 'lucide-react';
 import { incidentsApi } from '../../api/incidents.api';
 import { useAuthStore } from '../../stores/auth.store';
 import { useIncidentSocket } from '../../hooks/useSocket';
@@ -13,7 +10,7 @@ import { useIncidentSocket } from '../../hooks/useSocket';
 export default function IncidentDetail() {
   const { incidentId } = useParams<{ incidentId: string }>();
   const user = useAuthStore((s) => s.user);
-  const facilityId = user?.roles[0]?.facilityId ?? '';
+  const facilityId = user?.roles?.[0]?.facilityId ?? '';
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [showNewPeriod, setShowNewPeriod] = useState(false);

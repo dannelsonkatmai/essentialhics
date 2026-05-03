@@ -1,58 +1,33 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '../stores/auth.store';
 
-const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:3001';
+// Socket.io is not available without the backend; stub the interface
+// so the rest of the app compiles and socket-dependent code fails gracefully.
 
-let socketInstance: Socket | null = null;
-
-export function getSocket(): Socket | null {
-  return socketInstance;
+export function getSocket(): null {
+  return null;
 }
 
 export function useSocket() {
-  const token = useAuthStore((s) => s.accessToken);
-  const socketRef = useRef<Socket | null>(null);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const socketRef = useRef<null>(null);
 
   useEffect(() => {
-    if (!token) return;
+    if (!isAuthenticated) return;
+    // Socket.io backend not available in Supabase environment
+  }, [isAuthenticated]);
 
-    const socket = io(WS_URL, {
-      auth: { token },
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 2000,
-    });
-
-    socketRef.current = socket;
-    socketInstance = socket;
-
-    return () => {
-      socket.disconnect();
-      socketInstance = null;
-    };
-  }, [token]);
-
-  const joinIncident = useCallback((incidentId: string) => {
-    socketRef.current?.emit('join:incident', incidentId);
-  }, []);
-
-  const leaveIncident = useCallback((incidentId: string) => {
-    socketRef.current?.emit('leave:incident', incidentId);
-  }, []);
-
-  const on = useCallback(<T>(event: string, handler: (data: T) => void) => {
-    socketRef.current?.on(event, handler);
-    return () => { socketRef.current?.off(event, handler); };
+  const joinIncident = useCallback((_incidentId: string) => {}, []);
+  const leaveIncident = useCallback((_incidentId: string) => {}, []);
+  const on = useCallback(<T>(_event: string, _handler: (data: T) => void) => {
+    return () => {};
   }, []);
 
   return { socket: socketRef.current, joinIncident, leaveIncident, on };
 }
 
-// Lightweight hook for subscribing to a specific incident's events
 export function useIncidentSocket(incidentId: string | undefined) {
-  const { socket, joinIncident, leaveIncident } = useSocket();
+  const { joinIncident, leaveIncident } = useSocket();
 
   useEffect(() => {
     if (!incidentId) return;
@@ -60,5 +35,5 @@ export function useIncidentSocket(incidentId: string | undefined) {
     return () => leaveIncident(incidentId);
   }, [incidentId, joinIncident, leaveIncident]);
 
-  return socket;
+  return null;
 }

@@ -1,8 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useAuthStore } from './stores/auth.store';
-import { authApi } from './api/auth.api';
-import { setAccessToken } from './api/client';
+import { supabase } from './lib/supabase';
+import type { AuthUser } from './types';
 
 import DashboardShell from './components/layout/DashboardShell';
 import ProtectedRoute from './components/common/ProtectedRoute';
@@ -44,22 +44,42 @@ import MutualAidDirectory from './pages/resources/MutualAidDirectory';
 import CostLedger from './pages/costs/CostLedger';
 import CostDetail from './pages/costs/CostDetail';
 
+function sessionToAuthUser(supabaseUser: { id: string; email?: string; user_metadata?: Record<string, unknown> }): AuthUser {
+  const meta = supabaseUser.user_metadata ?? {};
+  return {
+    id: supabaseUser.id,
+    email: supabaseUser.email ?? '',
+    firstName: (meta.first_name as string) ?? (meta.firstName as string) ?? '',
+    lastName: (meta.last_name as string) ?? (meta.lastName as string) ?? '',
+    displayName: (meta.display_name as string) ?? undefined,
+    mustChangePassword: false,
+    mfaEnabled: false,
+  };
+}
+
 function App() {
   const { setUser, setLoading, logout } = useAuthStore();
 
   useEffect(() => {
-    // Bootstrap: try silent token refresh on page load
-    authApi.refresh()
-      .then(({ data }) => {
-        setAccessToken(data.accessToken);
+    // Bootstrap: load existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(sessionToAuthUser(session.user));
+      } else {
         setLoading(false);
-        setUser({ id: '', email: '', firstName: '', lastName: '', mustChangePassword: false, mfaEnabled: false }, data.accessToken);
-      })
-      .catch(() => setLoading(false));
+      }
+    });
 
-    const handleLogout = () => logout();
-    window.addEventListener('auth:logout', handleLogout);
-    return () => window.removeEventListener('auth:logout', handleLogout);
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser(sessionToAuthUser(session.user));
+      } else {
+        logout();
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   return (

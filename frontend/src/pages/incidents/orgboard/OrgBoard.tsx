@@ -6,7 +6,7 @@ import {
   closestCenter, PointerSensor, useSensor, useSensors,
 } from '@dnd-kit/core';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
-import { ChevronRight, UserCircle, X, Search, RefreshCw } from 'lucide-react';
+import { ChevronRight, CircleUser as UserCircle, X, Search, RefreshCw } from 'lucide-react';
 import { positionsApi, PositionAssignment } from '../../../api/positions.api';
 import { useAuthStore } from '../../../stores/auth.store';
 import { useIncidentSocket } from '../../../hooks/useSocket';
@@ -123,7 +123,7 @@ function DraggableUser({ user }: { user: StaffUser }) {
 export default function OrgBoard() {
   const { incidentId } = useParams<{ incidentId: string }>();
   const user = useAuthStore((s) => s.user);
-  const facilityId = user?.roles[0]?.facilityId ?? '';
+  const facilityId = user?.roles?.[0]?.facilityId ?? '';
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [draggedUserId, setDraggedUserId] = useState<string | null>(null);

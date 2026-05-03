@@ -1,81 +1,30 @@
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-
-// Access token stored in memory only — never localStorage/sessionStorage
-let accessToken: string | null = null;
-
-export function setAccessToken(token: string | null): void {
-  accessToken = token;
-}
-
-export function getAccessToken(): string | null {
-  return accessToken;
-}
+import axios from 'axios';
+import { supabase } from '../lib/supabase';
 
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? '',
-  withCredentials: true, // include HttpOnly refresh cookie
-  headers: { 'Content-Type': 'application/json' },
+  baseURL: `${import.meta.env.VITE_SUPABASE_URL}/rest/v1`,
+  headers: {
+    'Content-Type': 'application/json',
+    'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+  },
 });
 
-// Attach access token to every request
-apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  if (accessToken) {
-    config.headers.Authorization = `Bearer ${accessToken}`;
+// Attach Supabase session token to every request
+apiClient.interceptors.request.use(async (config) => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    config.headers.Authorization = `Bearer ${session.access_token}`;
   }
   return config;
 });
 
-// Auto-refresh on 401
-let isRefreshing = false;
-let failedQueue: Array<{ resolve: (token: string) => void; reject: (err: unknown) => void }> = [];
-
-function processQueue(err: unknown, token: string | null = null): void {
-  failedQueue.forEach(({ resolve, reject }) => {
-    if (err) reject(err);
-    else resolve(token!);
-  });
-  failedQueue = [];
+// Re-export for legacy compat
+export function setAccessToken(_token: string | null): void {
+  // No-op — token management is handled by Supabase
 }
 
-apiClient.interceptors.response.use(
-  (response) => response,
-  async (error: AxiosError) => {
-    const original = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+export function getAccessToken(): string | null {
+  return null;
+}
 
-    if (error.response?.status === 401 && !original._retry) {
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        }).then((token) => {
-          original.headers.Authorization = `Bearer ${token}`;
-          return apiClient(original);
-        });
-      }
-
-      original._retry = true;
-      isRefreshing = true;
-
-      try {
-        const { data } = await axios.post(
-          `${import.meta.env.VITE_API_URL ?? ''}/auth/refresh`,
-          {},
-          { withCredentials: true },
-        );
-        setAccessToken(data.accessToken);
-        processQueue(null, data.accessToken);
-        original.headers.Authorization = `Bearer ${data.accessToken}`;
-        return apiClient(original);
-      } catch (refreshError) {
-        processQueue(refreshError, null);
-        setAccessToken(null);
-        // Signal app to redirect to login
-        window.dispatchEvent(new CustomEvent('auth:logout'));
-        return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
-      }
-    }
-
-    return Promise.reject(error);
-  },
-);
+export default apiClient;
