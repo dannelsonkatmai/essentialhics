@@ -80,7 +80,7 @@ export default function IncidentDetail() {
               <h1 className="text-xl font-bold text-gray-900">{incident.name}</h1>
               <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
                 incident.status === 'ACTIVE' ? 'bg-red-100 text-red-800' :
-                incident.status === 'CONTROLLED' ? 'bg-yellow-100 text-yellow-800' :
+                incident.status === 'DEMOBILIZING' ? 'bg-yellow-100 text-yellow-800' :
                 'bg-gray-100 text-gray-600'
               }`}>
                 {incident.status}

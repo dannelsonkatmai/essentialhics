@@ -17,9 +17,17 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
-const INCIDENT_TYPES = [
-  'FIRE', 'HAZMAT', 'MASS_CASUALTY', 'EARTHQUAKE', 'FLOOD', 'ACTIVE_THREAT',
-  'UTILITY_FAILURE', 'IT_OUTAGE', 'EVACUATION', 'PANDEMIC', 'OTHER',
+const INCIDENT_TYPES: { value: string; label: string }[] = [
+  { value: 'MASS_CASUALTY', label: 'Mass Casualty' },
+  { value: 'NATURAL_DISASTER', label: 'Natural Disaster' },
+  { value: 'HAZMAT', label: 'Hazmat' },
+  { value: 'CYBER_ATTACK', label: 'Cyber Attack' },
+  { value: 'UTILITY_FAILURE', label: 'Utility Failure' },
+  { value: 'INFECTIOUS_DISEASE', label: 'Infectious Disease' },
+  { value: 'ACTIVE_THREAT', label: 'Active Threat' },
+  { value: 'INFRASTRUCTURE', label: 'Infrastructure' },
+  { value: 'PLANNED_EVENT', label: 'Planned Event' },
+  { value: 'OTHER', label: 'Other' },
 ];
 
 interface Props {
@@ -82,7 +90,7 @@ export default function CreateIncidentModal({ facilityId, onClose, onCreated }: 
               <select {...register('incidentType')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500">
                 <option value="">Select type…</option>
                 {INCIDENT_TYPES.map((t) => (
-                  <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>
+                  <option key={t.value} value={t.value}>{t.label}</option>
                 ))}
               </select>
               {errors.incidentType && <p className="text-xs text-red-600 mt-1">{errors.incidentType.message}</p>}
