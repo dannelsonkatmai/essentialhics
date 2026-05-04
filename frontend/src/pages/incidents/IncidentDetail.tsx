@@ -166,15 +166,37 @@ export default function IncidentDetail() {
           </div>
         </button>
 
-        <div className="bg-white border border-gray-200 rounded-xl p-5 flex items-start gap-4">
-          <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
-            <FileText className="w-5 h-5 text-amber-600" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">IAP Forms</h3>
-            <p className="text-xs text-gray-500 mt-0.5">{(periods ?? []).length} operational period(s)</p>
-          </div>
-        </div>
+        {(() => {
+          const firstIap = (periods ?? []).find((p) => p.iap)?.iap;
+          const content = (
+            <>
+              <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <FileText className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">IAP Forms</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {firstIap ? 'Open incident action plan' : `${(periods ?? []).length} operational period(s)`}
+                </p>
+              </div>
+            </>
+          );
+          return firstIap ? (
+            <Link
+              to={`/incidents/${incidentId}/iap/${firstIap.id}`}
+              className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow flex items-start gap-4"
+            >
+              {content}
+            </Link>
+          ) : (
+            <button
+              onClick={() => setShowNewPeriod(true)}
+              className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow flex items-start gap-4 text-left w-full"
+            >
+              {content}
+            </button>
+          );
+        })()}
       </div>
 
       {/* Operational Periods */}
