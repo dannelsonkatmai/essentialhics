@@ -23,7 +23,7 @@ const SEVERITY_LABELS: Record<string, string> = {
 
 export default function IncidentList() {
   const user = useAuthStore((s) => s.user);
-  const facilityId = user?.roles?.[0]?.facilityId ?? '';
+  const facilityId = user?.primaryFacilityId ?? user?.roles?.[0]?.facilityId ?? '';
   const [showCreate, setShowCreate] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [page, setPage] = useState(1);

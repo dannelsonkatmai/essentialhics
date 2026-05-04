@@ -44,16 +44,35 @@ import MutualAidDirectory from './pages/resources/MutualAidDirectory';
 import CostLedger from './pages/costs/CostLedger';
 import CostDetail from './pages/costs/CostDetail';
 
-function sessionToAuthUser(supabaseUser: { id: string; email?: string; user_metadata?: Record<string, unknown> }): AuthUser {
+async function buildAuthUser(supabaseUser: { id: string; email?: string; user_metadata?: Record<string, unknown> }): Promise<AuthUser> {
   const meta = supabaseUser.user_metadata ?? {};
+  const email = supabaseUser.email ?? '';
+
+  // Load app_users row + facility roles in one query
+  const { data: appUser } = await supabase
+    .from('app_users')
+    .select('id, first_name, last_name, display_name, user_facility_roles(facility_id, hics_role, is_primary_facility, is_deleted)')
+    .eq('email', email)
+    .maybeSingle();
+
+  const roles = (appUser?.user_facility_roles ?? [])
+    .filter((r: { is_deleted: boolean }) => !r.is_deleted)
+    .map((r: { facility_id: string; hics_role: string }) => ({ facilityId: r.facility_id, hicsRole: r.hics_role as import('./types').HicsRole }));
+
+  const primaryRole = (appUser?.user_facility_roles ?? [])
+    .find((r: { is_primary_facility: boolean; is_deleted: boolean }) => r.is_primary_facility && !r.is_deleted);
+
   return {
-    id: supabaseUser.id,
-    email: supabaseUser.email ?? '',
-    firstName: (meta.first_name as string) ?? (meta.firstName as string) ?? '',
-    lastName: (meta.last_name as string) ?? (meta.lastName as string) ?? '',
-    displayName: (meta.display_name as string) ?? undefined,
+    id: appUser?.id ?? supabaseUser.id,
+    email,
+    firstName: appUser?.first_name ?? (meta.first_name as string) ?? '',
+    lastName: appUser?.last_name ?? (meta.last_name as string) ?? '',
+    displayName: appUser?.display_name ?? (meta.display_name as string) ?? undefined,
     mustChangePassword: false,
     mfaEnabled: false,
+    roles,
+    facilityIds: roles.map((r) => r.facilityId),
+    primaryFacilityId: (primaryRole as { facility_id: string } | undefined)?.facility_id ?? roles[0]?.facilityId,
   };
 }
 
@@ -64,7 +83,7 @@ function App() {
     // Bootstrap: load existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        setUser(sessionToAuthUser(session.user));
+        buildAuthUser(session.user).then(setUser);
       } else {
         setLoading(false);
       }
@@ -73,7 +92,10 @@ function App() {
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        setUser(sessionToAuthUser(session.user));
+        (async () => {
+          const user = await buildAuthUser(session.user);
+          setUser(user);
+        })();
       } else {
         logout();
       }
