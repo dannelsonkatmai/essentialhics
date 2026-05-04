@@ -257,6 +257,17 @@ export const incidentsApi = {
   createIap: async (incidentId: string, periodId: string) => {
     const userRow = await getMyUserRow();
     if (!userRow) throw new Error('User not found');
+
+    const { data: existing } = await supabase
+      .from('iaps')
+      .select('id, status')
+      .eq('operational_period_id', periodId)
+      .maybeSingle();
+
+    if (existing) {
+      return { data: { id: existing.id as string, status: existing.status as string, completenessScore: 0 } };
+    }
+
     const { data, error } = await supabase
       .from('iaps')
       .insert({
