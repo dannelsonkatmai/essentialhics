@@ -1,10 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  ChevronRight, CheckCircle, Circle, AlertCircle, FileText,
-  Save, Download, Send, ChevronDown, ChevronUp, BookOpen, Users
-} from 'lucide-react';
+import { ChevronRight, CircleCheck as CheckCircle, Circle, CircleAlert as AlertCircle, FileText, Save, Download, Send, ChevronDown, ChevronUp, BookOpen, Users } from 'lucide-react';
 import { iapApi, Iap } from '../../../api/iap.api';
 import { useIncidentSocket } from '../../../hooks/useSocket';
 import IapApprovalPanel from './IapApprovalPanel';
@@ -73,12 +70,9 @@ export default function IapEditor() {
   const saveMutation = useMutation({
     mutationFn: ({ formNumber, formData }: { formNumber: string; formData: Record<string, unknown> }) =>
       iapApi.saveForm(iapId!, formNumber, formData),
-    onSuccess: (data) => {
+    onSuccess: () => {
       setLastSaved(new Date());
-      queryClient.setQueryData(['iap', iapId], (old: Iap | undefined) => {
-        if (!old) return old;
-        return { ...old, completenessScore: data.data.completenessScore };
-      });
+      queryClient.invalidateQueries({ queryKey: ['iap', iapId] });
     },
   });
 
