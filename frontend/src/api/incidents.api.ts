@@ -73,7 +73,7 @@ async function getMyUserRow(): Promise<{ id: string; health_system_id: string } 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) return null;
   const { data } = await supabase
-    .from('users')
+    .from('app_users')
     .select('id, health_system_id')
     .eq('email', user.email)
     .maybeSingle();
