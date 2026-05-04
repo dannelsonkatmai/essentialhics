@@ -155,7 +155,7 @@ export default function CreateIncidentModal({ facilityId, onClose, onCreated }: 
           {/* Error */}
           {mutation.isError && (
             <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
-              Failed to declare incident. Please try again.
+              Failed to declare incident: {(mutation.error as Error)?.message ?? 'Unknown error'}
             </div>
           )}
 
