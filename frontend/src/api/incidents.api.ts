@@ -204,11 +204,23 @@ export const incidentsApi = {
   listPeriods: async (facilityId: string, incidentId: string) => {
     const { data, error } = await supabase
       .from('operational_periods')
-      .select('*')
+      .select('*, iaps(id, status)')
       .eq('incident_id', incidentId)
       .order('period_number', { ascending: true });
     if (error) throw error;
-    return { data: (data ?? []).map((r) => toOperationalPeriod(r as Record<string, unknown>)) };
+    return {
+      data: (data ?? []).map((r) => {
+        const row = r as Record<string, unknown>;
+        const iapRows = row.iaps as Array<{ id: string; status: string }> | null;
+        const iapRow = iapRows && iapRows.length > 0 ? iapRows[0] : null;
+        return {
+          ...toOperationalPeriod(row),
+          iap: iapRow
+            ? { id: iapRow.id, status: iapRow.status, completenessScore: 0 }
+            : null,
+        };
+      }),
+    };
   },
 
   createPeriod: async (facilityId: string, incidentId: string, dto: { startTime: string; endTime: string; objectives?: string }) => {
