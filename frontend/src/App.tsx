@@ -20,6 +20,7 @@ import UserDetailPage from './pages/admin/UserDetail';
 import FacilitiesPage from './pages/admin/Facilities';
 import FacilityDetailPage from './pages/admin/FacilityDetail';
 import AuditLogPage from './pages/admin/AuditLog';
+import SettingsPage from './pages/admin/Settings';
 import ProfilePage from './pages/profile/Profile';
 
 // Phase 2 — Incidents
@@ -123,6 +124,7 @@ function App() {
             <Route path="/admin/facilities" element={<FacilitiesPage />} />
             <Route path="/admin/facilities/:id" element={<FacilityDetailPage />} />
             <Route path="/admin/audit-log" element={<AuditLogPage />} />
+            <Route path="/admin/settings" element={<SettingsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
 
             {/* Phase 2 Incidents */}
