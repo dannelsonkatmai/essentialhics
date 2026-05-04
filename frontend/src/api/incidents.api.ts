@@ -254,6 +254,24 @@ export const incidentsApi = {
     return { data: toOperationalPeriod(data as Record<string, unknown>) };
   },
 
+  createIap: async (incidentId: string, periodId: string) => {
+    const userRow = await getMyUserRow();
+    if (!userRow) throw new Error('User not found');
+    const { data, error } = await supabase
+      .from('iaps')
+      .insert({
+        incident_id: incidentId,
+        operational_period_id: periodId,
+        status: 'DRAFT',
+        version_number: 1,
+        created_by: userRow.id,
+      })
+      .select('id, status')
+      .single();
+    if (error) throw error;
+    return { data: { id: data.id as string, status: data.status as string, completenessScore: 0 } };
+  },
+
   activatePeriod: async (facilityId: string, incidentId: string, periodId: string) => {
     const { error } = await supabase
       .from('operational_periods')

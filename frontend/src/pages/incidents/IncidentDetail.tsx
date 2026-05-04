@@ -14,6 +14,7 @@ export default function IncidentDetail() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [showNewPeriod, setShowNewPeriod] = useState(false);
+  const [openingIapForPeriod, setOpeningIapForPeriod] = useState<string | null>(null);
 
   // Subscribe to real-time updates for this incident
   useIncidentSocket(incidentId);
@@ -45,6 +46,21 @@ export default function IncidentDetail() {
       setShowNewPeriod(false);
     },
   });
+
+  const openIap = async (period: { id: string; iap?: { id: string } | null }) => {
+    if (period.iap) {
+      navigate(`/incidents/${incidentId}/iap/${period.iap.id}`);
+      return;
+    }
+    setOpeningIapForPeriod(period.id);
+    try {
+      const { data } = await incidentsApi.createIap(incidentId!, period.id);
+      queryClient.invalidateQueries({ queryKey: ['incidents', incidentId, 'periods'] });
+      navigate(`/incidents/${incidentId}/iap/${data.id}`);
+    } finally {
+      setOpeningIapForPeriod(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -181,13 +197,14 @@ export default function IncidentDetail() {
               </div>
             </>
           );
-          return firstIap ? (
-            <Link
-              to={`/incidents/${incidentId}/iap/${firstIap.id}`}
-              className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow flex items-start gap-4"
+          const firstPeriod = (periods ?? []).find((p) => p.iap) ?? (periods ?? [])[0];
+          return firstPeriod ? (
+            <button
+              onClick={() => openIap(firstPeriod)}
+              className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow flex items-start gap-4 text-left w-full"
             >
               {content}
-            </Link>
+            </button>
           ) : (
             <button
               onClick={() => setShowNewPeriod(true)}
@@ -237,18 +254,17 @@ export default function IncidentDetail() {
                         period.iap.status === 'IN_REVIEW' ? 'text-amber-600' :
                         'text-gray-600'
                       }`}>
-                        {period.iap.status} · {period.iap.completenessScore}%
+                        {period.iap.status}
                       </p>
                     </div>
                   )}
-                  {period.iap && (
-                    <Link
-                      to={`/incidents/${incidentId}/iap/${period.iap.id}`}
-                      className="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50"
-                    >
-                      Open IAP
-                    </Link>
-                  )}
+                  <button
+                    onClick={() => openIap(period)}
+                    disabled={openingIapForPeriod === period.id}
+                    className="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50"
+                  >
+                    {openingIapForPeriod === period.id ? 'Opening…' : period.iap ? 'Open IAP' : 'Create IAP'}
+                  </button>
                 </div>
               </div>
             ))}
