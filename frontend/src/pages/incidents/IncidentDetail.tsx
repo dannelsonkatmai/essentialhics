@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { TriangleAlert as AlertTriangle, Clock, Users, FileText, Network, Plus, ChevronRight, CircleCheck as CheckCircle, Circle as XCircle } from 'lucide-react';
 import { incidentsApi } from '../../api/incidents.api';
+import { writeAuditLog } from '../../api/auditLog.api';
 import { useAuthStore } from '../../stores/auth.store';
 import { useIncidentSocket } from '../../hooks/useSocket';
 
@@ -34,6 +35,7 @@ export default function IncidentDetail() {
   const closeMutation = useMutation({
     mutationFn: () => incidentsApi.close(facilityId, incidentId!),
     onSuccess: () => {
+      writeAuditLog({ action: 'INCIDENT_CLOSED', resourceType: 'Incident', resourceId: incidentId!, facilityId });
       queryClient.invalidateQueries({ queryKey: ['incidents'] });
     },
   });

@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { TriangleAlert as AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { authApi } from '../api/auth.api';
 import { useAuthStore } from '../stores/auth.store';
+import { writeAuditLog } from '../api/auditLog.api';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email address'),
@@ -37,6 +38,7 @@ export default function LoginPage() {
 
       if (resp.accessToken && resp.user) {
         setUser(resp.user);
+        writeAuditLog({ action: 'USER_LOGIN', resourceType: 'User', resourceId: resp.user.id });
         if (resp.user.mustChangePassword) {
           navigate('/profile?tab=security&action=change-password');
         } else {

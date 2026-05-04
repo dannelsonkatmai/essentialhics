@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { incidentsApi, CreateIncidentDto } from '../../api/incidents.api';
+import { writeAuditLog } from '../../api/auditLog.api';
 
 const schema = z.object({
   name: z.string().min(3, 'Name required'),
@@ -47,7 +48,10 @@ export default function CreateIncidentModal({ facilityId, onClose, onCreated }: 
 
   const mutation = useMutation({
     mutationFn: (data: CreateIncidentDto) => incidentsApi.create(facilityId, data),
-    onSuccess: onCreated,
+    onSuccess: (result) => {
+      writeAuditLog({ action: 'INCIDENT_CREATED', resourceType: 'Incident', resourceId: result.data.id, facilityId, metadata: { name: result.data.name, incidentNumber: result.data.incidentNumber } });
+      onCreated();
+    },
   });
 
   const onSubmit = (values: FormValues) => {

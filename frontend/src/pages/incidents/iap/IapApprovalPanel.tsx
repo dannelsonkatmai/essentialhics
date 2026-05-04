@@ -1,8 +1,9 @@
 import { useState, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import SignatureCanvas from 'react-signature-canvas';
-import { X, CheckCircle, RotateCcw, Send, Lock, Archive } from 'lucide-react';
+import { X, CircleCheck as CheckCircle, RotateCcw, Send, Lock, Archive } from 'lucide-react';
 import { iapApi, Iap, IapStatus } from '../../../api/iap.api';
+import { writeAuditLog } from '../../../api/auditLog.api';
 import { usePermission } from '../../../hooks/usePermission';
 
 const STEPS: { status: IapStatus; label: string }[] = [
@@ -32,27 +33,27 @@ export default function IapApprovalPanel({ iap, onClose, onTransition }: Props) 
 
   const submitMutation = useMutation({
     mutationFn: () => iapApi.submit(iap.id),
-    onSuccess: onTransition,
+    onSuccess: () => { writeAuditLog({ action: 'IAP_SUBMITTED', resourceType: 'IAP', resourceId: iap.id }); onTransition(); },
   });
 
   const approveMutation = useMutation({
     mutationFn: () => iapApi.approve(iap.id),
-    onSuccess: onTransition,
+    onSuccess: () => { writeAuditLog({ action: 'IAP_APPROVED', resourceType: 'IAP', resourceId: iap.id }); onTransition(); },
   });
 
   const returnMutation = useMutation({
     mutationFn: () => iapApi.returnToDraft(iap.id, returnNotes),
-    onSuccess: onTransition,
+    onSuccess: () => { writeAuditLog({ action: 'IAP_RETURNED', resourceType: 'IAP', resourceId: iap.id }); onTransition(); },
   });
 
   const publishMutation = useMutation({
     mutationFn: (sigData: string) => iapApi.publish(iap.id, sigData),
-    onSuccess: onTransition,
+    onSuccess: () => { writeAuditLog({ action: 'IAP_PUBLISHED', resourceType: 'IAP', resourceId: iap.id }); onTransition(); },
   });
 
   const archiveMutation = useMutation({
     mutationFn: () => iapApi.archive(iap.id),
-    onSuccess: onTransition,
+    onSuccess: () => { writeAuditLog({ action: 'IAP_ARCHIVED', resourceType: 'IAP', resourceId: iap.id }); onTransition(); },
   });
 
   const handlePublish = () => {
