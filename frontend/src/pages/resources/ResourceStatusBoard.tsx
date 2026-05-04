@@ -366,7 +366,7 @@ export default function ResourceStatusBoard() {
     queryFn: async () => {
       const params: Record<string, string> = statusFilter ? { status: statusFilter } : {};
       const res = await resourcesApi.list(facilityId, incidentId!, params);
-      return res.data as IncidentResource[];
+      return res.data as unknown as IncidentResource[];
     },
     enabled: !!incidentId && !!facilityId,
     refetchInterval: 30_000, // also refetch every 30s as fallback
@@ -376,7 +376,7 @@ export default function ResourceStatusBoard() {
     queryKey: ['resource-summary', incidentId],
     queryFn: async () => {
       const res = await resourcesApi.summary(facilityId, incidentId!);
-      return res.data as Record<ResourceStatus, number>;
+      return res.data as unknown as Record<ResourceStatus, number>;
     },
     enabled: !!incidentId && !!facilityId,
     refetchInterval: 30_000,

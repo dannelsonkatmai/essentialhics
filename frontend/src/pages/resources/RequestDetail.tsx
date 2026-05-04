@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { ArrowLeft, ClipboardList, CheckCircle, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, ClipboardList, CircleCheck as CheckCircle, Circle as XCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuthStore } from '../../stores/auth.store';
 import { requestsApi } from '../../api/requests.api';
 
@@ -213,7 +213,7 @@ export default function RequestDetail() {
     queryKey: ['request', requestId],
     queryFn: async () => {
       const res = await requestsApi.get(facilityId, incidentId!, requestId!);
-      return res.data as ResourceRequest;
+      return res.data as unknown as ResourceRequest;
     },
     enabled: !!facilityId && !!incidentId && !!requestId,
   });

@@ -220,7 +220,7 @@ export default function CostLedger() {
     queryKey: ['cost-records', incidentId, params],
     queryFn: async () => {
       const res = await costsApi.list(facilityId, incidentId!, params);
-      return res.data as CostRecord[];
+      return res.data as unknown as CostRecord[];
     },
     enabled: !!incidentId && !!facilityId,
   });

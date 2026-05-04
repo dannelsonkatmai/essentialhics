@@ -87,7 +87,7 @@ export default function ResourceDetail() {
     queryKey: ['incident-resource', resourceId],
     queryFn: async () => {
       const res = await resourcesApi.get(facilityId, incidentId!, resourceId!);
-      return res.data as IncidentResource;
+      return res.data as unknown as IncidentResource;
     },
     enabled: !!facilityId && !!incidentId && !!resourceId,
   });

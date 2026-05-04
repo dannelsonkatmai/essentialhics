@@ -197,7 +197,7 @@ export default function RequestList() {
     queryFn: async () => {
       const params: Record<string, string> = statusFilter ? { status: statusFilter } : {};
       const res = await requestsApi.list(facilityId, incidentId!, params);
-      return res.data as ResourceRequest[];
+      return res.data as unknown as ResourceRequest[];
     },
     enabled: !!incidentId && !!facilityId,
     refetchInterval: 30_000,

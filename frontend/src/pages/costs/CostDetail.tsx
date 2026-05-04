@@ -5,7 +5,7 @@
 
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, DollarSign, CheckCircle, Clock, User, Wrench } from 'lucide-react';
+import { ArrowLeft, DollarSign, CircleCheck as CheckCircle, Clock, User, Wrench } from 'lucide-react';
 import { useAuthStore } from '../../stores/auth.store';
 import { costsApi } from '../../api/costs.api';
 
@@ -95,7 +95,7 @@ export default function CostDetail() {
     queryKey: ['cost', costId],
     queryFn: async () => {
       const res = await costsApi.get(facilityId, incidentId!, costId!);
-      return res.data as CostRecord;
+      return res.data as unknown as CostRecord;
     },
     enabled: !!facilityId && !!incidentId && !!costId,
   });
