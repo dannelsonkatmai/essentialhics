@@ -352,9 +352,17 @@ export default function RequestDetail() {
 
       {/* Line items */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
-        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
+        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">
           Resource Line Items ({request.lineItems.length})
         </h2>
+        <ul className="mb-4 space-y-1">
+          {request.lineItems.map((li) => (
+            <li key={li.id} className="flex items-baseline gap-2 text-sm text-gray-700">
+              <span className="font-semibold text-gray-900 flex-shrink-0">{li.quantity} {li.unit}</span>
+              <span>{li.resourceDescription}</span>
+            </li>
+          ))}
+        </ul>
         <div className="space-y-3">
           {request.lineItems.map((li) => (
             <LineItemRow
