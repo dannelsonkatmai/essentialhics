@@ -39,7 +39,7 @@ function toRequest(r: Record<string, unknown>) {
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     lineItems: (r.resource_request_line_items as any[]) ?? [],
-    requestedByUser: toUser((r as any).app_users),
+    requestedByUser: toUser((r as any).requested_by),
   };
 }
 
@@ -54,7 +54,7 @@ export const requestsApi = {
   },
 
   get: async (facilityId: string, incidentId: string, requestId: string) => {
-    const { data, error } = await supabase.from('resource_requests').select('*, resource_request_line_items(*), app_users!requested_by_user_id(id, first_name, last_name, email)').eq('id', requestId).maybeSingle();
+    const { data, error } = await supabase.from('resource_requests').select('*, resource_request_line_items(*), requested_by:app_users!resource_requests_requested_by_user_id_fkey(id, first_name, last_name, email)').eq('id', requestId).maybeSingle();
     if (error) throw error;
     return { data: toRequest(data as any) };
   },
