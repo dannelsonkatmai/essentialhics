@@ -23,7 +23,7 @@ interface ResourceRequest {
   neededDate?: string;
   estimatedCost?: string;
   createdAt: string;
-  requestedByUser: { firstName: string; lastName: string };
+  requestedByUser?: { firstName: string; lastName: string };
   lineItems: Array<{
     id: string;
     resourceDescription: string;
@@ -103,7 +103,7 @@ function RequestRow({ req, facilityId, incidentId }: {
           {req.missionAssignment ?? req.requestedForSection ?? '��'}
         </td>
         <td className="px-4 py-3 text-sm text-gray-500">
-          {req.requestedByUser.firstName} {req.requestedByUser.lastName}
+          {req.requestedByUser ? `${req.requestedByUser.firstName} ${req.requestedByUser.lastName}` : '—'}
         </td>
         <td className="px-4 py-3 text-sm text-gray-700">
           {estimatedCost ?? '—'}
@@ -188,7 +188,7 @@ function RequestRow({ req, facilityId, incidentId }: {
 export default function RequestList() {
   const { incidentId } = useParams<{ incidentId: string }>();
   const { user } = useAuthStore();
-  const facilityId = user?.facilityIds?.[0] ?? '';
+  const facilityId = user?.primaryFacilityId ?? user?.facilityIds?.[0] ?? '';
 
   const [statusFilter, setStatusFilter] = useState('');
 
