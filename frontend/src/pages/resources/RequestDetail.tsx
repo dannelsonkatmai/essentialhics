@@ -45,7 +45,7 @@ interface ResourceRequest {
   justification?: string;
   estimatedCost?: string;
   createdAt: string;
-  requestedByUser: { firstName: string; lastName: string };
+  requestedByUser?: { firstName: string; lastName: string };
   approvedByUser?: { firstName: string; lastName: string };
   lineItems: LineItem[];
 }
@@ -206,7 +206,7 @@ export default function RequestDetail() {
   const { incidentId, requestId } = useParams<{ incidentId: string; requestId: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const facilityId = user?.facilityIds?.[0] ?? '';
+  const facilityId = user?.primaryFacilityId ?? user?.facilityIds?.[0] ?? '';
   const queryClient = useQueryClient();
 
   const { data: request, isLoading, isError } = useQuery({
@@ -215,7 +215,7 @@ export default function RequestDetail() {
       const res = await requestsApi.get(facilityId, incidentId!, requestId!);
       return res.data as unknown as ResourceRequest;
     },
-    enabled: !!facilityId && !!incidentId && !!requestId,
+    enabled: !!incidentId && !!requestId,
   });
 
   const submitMutation = useMutation({
@@ -281,7 +281,7 @@ export default function RequestDetail() {
           <div>
             <h1 className="text-xl font-bold text-gray-900">{request.requestNumber}</h1>
             <p className="text-sm text-gray-500">
-              Submitted by {request.requestedByUser.firstName} {request.requestedByUser.lastName} ·{' '}
+              {request.requestedByUser ? `Submitted by ${request.requestedByUser.firstName} ${request.requestedByUser.lastName} · ` : ''}
               {new Date(request.createdAt).toLocaleDateString()}
             </p>
           </div>

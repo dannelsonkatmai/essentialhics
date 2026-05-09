@@ -7,6 +7,11 @@ async function getCurrentAppUserId(): Promise<string | null> {
   return (data as { id: string } | null)?.id ?? null;
 }
 
+function toUser(u: any) {
+  if (!u) return undefined;
+  return { firstName: u.first_name ?? '', lastName: u.last_name ?? '', email: u.email ?? '' };
+}
+
 function toRequest(r: Record<string, unknown>) {
   return {
     id: r.id,
@@ -34,6 +39,7 @@ function toRequest(r: Record<string, unknown>) {
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     lineItems: (r.resource_request_line_items as any[]) ?? [],
+    requestedByUser: toUser((r as any).app_users),
   };
 }
 
