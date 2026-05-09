@@ -83,15 +83,21 @@ function App() {
   useEffect(() => {
     // Listen for auth state changes — handles bootstrap + sign-in/out
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT' || (!session?.user)) {
+      if (event === 'SIGNED_OUT') {
         logout();
+        return;
+      }
+
+      // INITIAL_SESSION with no session = not logged in, stop the loading spinner
+      if (event === 'INITIAL_SESSION' && !session?.user) {
+        setLoading(false);
         return;
       }
 
       // Only rebuild the full user profile on initial load or explicit sign-in.
       // TOKEN_REFRESHED / USER_UPDATED don't need a DB round-trip and would
       // cause brief isLoading flickers that navigate away from the current page.
-      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+      if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && session?.user) {
         setLoading(true);
         (async () => {
           const user = await buildAuthUser(session.user);
