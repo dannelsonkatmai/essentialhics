@@ -128,18 +128,18 @@ export default function SettingsPage() {
             <div className="space-y-4">
               <div>
                 <label className="label">Session timeout (minutes)</label>
-                <select className="input w-48">
+                <select className="input w-48" defaultValue="60">
                   <option value="30">30 minutes</option>
-                  <option value="60" selected>60 minutes</option>
+                  <option value="60">60 minutes</option>
                   <option value="120">2 hours</option>
                   <option value="480">8 hours</option>
                 </select>
               </div>
               <div>
                 <label className="label">Maximum concurrent sessions per user</label>
-                <select className="input w-48">
+                <select className="input w-48" defaultValue="3">
                   <option value="1">1</option>
-                  <option value="3" selected>3</option>
+                  <option value="3">3</option>
                   <option value="5">5</option>
                   <option value="0">Unlimited</option>
                 </select>
