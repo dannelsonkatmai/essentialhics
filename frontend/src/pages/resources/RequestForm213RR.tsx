@@ -45,7 +45,7 @@ export default function RequestForm213RR() {
   const { incidentId } = useParams<{ incidentId: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const facilityId = user?.facilityIds?.[0] ?? '';
+  const facilityId = user?.primaryFacilityId ?? user?.facilityIds?.[0] ?? '';
 
   const { data: resourceTypes = [] } = useQuery({
     queryKey: ['resource-types', facilityId],
@@ -79,7 +79,7 @@ export default function RequestForm213RR() {
         deliveryBy: data.deliveryBy ? new Date(data.deliveryBy).toISOString() : undefined,
         neededDate: data.neededDate ? new Date(data.neededDate).toISOString() : undefined,
       }),
-    onSuccess: (res) => {
+    onSuccess: () => {
       navigate(`/incidents/${incidentId}/requests`);
     },
   });
@@ -302,8 +302,8 @@ export default function RequestForm213RR() {
 
         {/* Submit */}
         {createMutation.isError && (
-          <p className="text-sm text-red-600">
-            {(createMutation.error as any)?.response?.data?.message ?? 'Failed to create request'}
+          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+            {(createMutation.error as any)?.message ?? 'Failed to create request. Please try again.'}
           </p>
         )}
 
