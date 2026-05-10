@@ -61,11 +61,9 @@ export const requestsApi = {
 
   create: async (facilityId: string, incidentId: string, body: Record<string, unknown>) => {
     const userId = await getCurrentAppUserId();
-    const requestNumber = `REQ-${Date.now().toString(36).toUpperCase()}`;
     const { data, error } = await supabase.from('resource_requests').insert({
       incident_id: incidentId,
       facility_id: facilityId,
-      request_number: requestNumber,
       requested_by_user_id: userId,
       priority: body.priority ?? 'ROUTINE',
       status: 'DRAFT',
