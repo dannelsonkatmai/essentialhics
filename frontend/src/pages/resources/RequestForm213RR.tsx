@@ -165,7 +165,7 @@ export default function RequestForm213RR() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Justification / Special Instructions</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Notes / Special Instructions</label>
             <textarea
               {...register('justification')}
               rows={3}
