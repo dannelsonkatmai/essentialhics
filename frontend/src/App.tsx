@@ -98,6 +98,10 @@ function App() {
       // TOKEN_REFRESHED / USER_UPDATED don't need a DB round-trip and would
       // cause brief isLoading flickers that navigate away from the current page.
       if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && session?.user) {
+        const currentUser = useAuthStore.getState().user;
+        // Skip rebuild if already authenticated — prevents SIGNED_IN fired during
+        // token refresh from triggering isLoading and navigating back to home.
+        if (currentUser) return;
         setLoading(true);
         (async () => {
           const user = await buildAuthUser(session.user);
