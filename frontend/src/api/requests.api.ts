@@ -12,6 +12,26 @@ function toUser(u: any) {
   return { firstName: u.first_name ?? '', lastName: u.last_name ?? '', email: u.email ?? '' };
 }
 
+function toLineItem(li: any) {
+  return {
+    id: li.id,
+    resourceDescription: li.resource_description,
+    quantity: li.quantity,
+    unit: li.unit ?? '',
+    filledQuantity: li.filled_quantity ?? '0',
+    estimatedUnitCost: li.estimated_unit_cost ?? undefined,
+    estimatedTotalCost: li.estimated_total_cost ?? undefined,
+    notes: li.notes ?? undefined,
+    fulfillments: (li.request_fulfillments ?? []).map((f: any) => ({
+      id: f.id,
+      quantityFulfilled: f.quantity_fulfilled,
+      fulfilledAt: f.fulfilled_at,
+      notes: f.notes ?? undefined,
+      fulfilledByUser: toUser(f.fulfilled_by) ?? { firstName: '', lastName: '' },
+    })),
+  };
+}
+
 function toRequest(r: Record<string, unknown>) {
   return {
     id: r.id,
@@ -38,8 +58,9 @@ function toRequest(r: Record<string, unknown>) {
     cancelledAt: r.cancelled_at,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
-    lineItems: (r.resource_request_line_items as any[]) ?? [],
+    lineItems: ((r.resource_request_line_items as any[]) ?? []).map(toLineItem),
     requestedByUser: toUser((r as any).requested_by),
+    approvedByUser: toUser((r as any).approved_by),
   };
 }
 
@@ -54,7 +75,25 @@ export const requestsApi = {
   },
 
   get: async (facilityId: string, incidentId: string, requestId: string) => {
-    const { data, error } = await supabase.from('resource_requests').select('*, resource_request_line_items(*), requested_by:app_users!resource_requests_requested_by_user_id_fkey(id, first_name, last_name, email)').eq('id', requestId).maybeSingle();
+    const { data, error } = await supabase
+      .from('resource_requests')
+      .select(`
+        *,
+        resource_request_line_items(
+          *,
+          request_fulfillments(
+            id,
+            quantity_fulfilled,
+            fulfilled_at,
+            notes,
+            fulfilled_by:app_users!request_fulfillments_fulfilled_by_user_id_fkey(id, first_name, last_name, email)
+          )
+        ),
+        requested_by:app_users!resource_requests_requested_by_user_id_fkey(id, first_name, last_name, email),
+        approved_by:app_users!resource_requests_approved_by_user_id_fkey(id, first_name, last_name, email)
+      `)
+      .eq('id', requestId)
+      .maybeSingle();
     if (error) throw error;
     return { data: toRequest(data as any) };
   },
