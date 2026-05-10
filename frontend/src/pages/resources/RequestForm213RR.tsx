@@ -3,13 +3,13 @@
  * Create a new resource request with line items.
  */
 
-import { useState } from 'react';
+import { useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Plus, Trash2, ArrowLeft, ClipboardList } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, ClipboardList, Send } from 'lucide-react';
 import { useAuthStore } from '../../stores/auth.store';
 import { requestsApi } from '../../api/requests.api';
 import { resourcesApi } from '../../api/resources.api';
@@ -46,6 +46,7 @@ export default function RequestForm213RR() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const facilityId = user?.primaryFacilityId ?? user?.facilityIds?.[0] ?? '';
+  const submitIntentRef = useRef<'draft' | 'submit'>('draft');
 
   const { data: resourceTypes = [] } = useQuery({
     queryKey: ['resource-types', facilityId],
@@ -73,12 +74,17 @@ export default function RequestForm213RR() {
   const { fields, append, remove } = useFieldArray({ control, name: 'lineItems' });
 
   const createMutation = useMutation({
-    mutationFn: (data: FormValues) =>
-      requestsApi.create(facilityId, incidentId!, {
+    mutationFn: async (data: FormValues) => {
+      const result = await requestsApi.create(facilityId, incidentId!, {
         ...data,
         deliveryBy: data.deliveryBy ? new Date(data.deliveryBy).toISOString() : undefined,
         neededDate: data.neededDate ? new Date(data.neededDate).toISOString() : undefined,
-      }),
+      });
+      if (submitIntentRef.current === 'submit' && result.data?.id) {
+        await requestsApi.submit(facilityId, incidentId!, result.data.id as string);
+      }
+      return result;
+    },
     onSuccess: () => {
       navigate(`/incidents/${incidentId}/requests`);
     },
@@ -318,9 +324,19 @@ export default function RequestForm213RR() {
           <button
             type="submit"
             disabled={createMutation.isPending}
-            className="px-5 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50"
+            onClick={() => { submitIntentRef.current = 'draft'; }}
+            className="px-5 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
           >
-            {createMutation.isPending ? 'Saving…' : 'Save as Draft'}
+            {createMutation.isPending && submitIntentRef.current === 'draft' ? 'Saving…' : 'Save as Draft'}
+          </button>
+          <button
+            type="submit"
+            disabled={createMutation.isPending}
+            onClick={() => { submitIntentRef.current = 'submit'; }}
+            className="flex items-center gap-2 px-5 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50"
+          >
+            <Send className="h-4 w-4" />
+            {createMutation.isPending && submitIntentRef.current === 'submit' ? 'Submitting…' : 'Submit'}
           </button>
         </div>
       </form>
