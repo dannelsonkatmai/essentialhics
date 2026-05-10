@@ -10,7 +10,7 @@ import { Plus, ClipboardList, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuthStore } from '../../stores/auth.store';
 import { requestsApi } from '../../api/requests.api';
 
-type RequestStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'PARTIALLY_FILLED' | 'FILLED' | 'CANCELLED' | 'DENIED';
+type RequestStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'LOGISTICS_REVIEW' | 'FINANCE_REVIEW' | 'PARTIALLY_FILLED' | 'FILLED' | 'CANCELLED' | 'DENIED';
 
 interface ResourceRequest {
   id: string;
@@ -38,10 +38,24 @@ const STATUS_BADGE: Record<RequestStatus, string> = {
   DRAFT:            'bg-gray-100 text-gray-800',
   SUBMITTED:        'bg-yellow-100 text-yellow-800',
   APPROVED:         'bg-blue-100 text-blue-800',
+  LOGISTICS_REVIEW: 'bg-teal-100 text-teal-800',
+  FINANCE_REVIEW:   'bg-cyan-100 text-cyan-800',
   PARTIALLY_FILLED: 'bg-orange-100 text-orange-800',
   FILLED:           'bg-green-100 text-green-800',
   CANCELLED:        'bg-gray-100 text-gray-500 line-through',
   DENIED:           'bg-red-100 text-red-800',
+};
+
+const STATUS_LABEL: Record<RequestStatus, string> = {
+  DRAFT:            'Draft',
+  SUBMITTED:        'Submitted',
+  APPROVED:         'Approved',
+  LOGISTICS_REVIEW: 'Logistics Review',
+  FINANCE_REVIEW:   'Finance Review',
+  PARTIALLY_FILLED: 'Partially Filled',
+  FILLED:           'Filled',
+  CANCELLED:        'Cancelled',
+  DENIED:           'Denied',
 };
 
 const PRIORITY_BADGE: Record<string, string> = {
@@ -91,7 +105,7 @@ function RequestRow({ req, facilityId, incidentId }: {
         </td>
         <td className="px-4 py-3">
           <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${STATUS_BADGE[req.status]}`}>
-            {req.status.replace('_', ' ')}
+            {STATUS_LABEL[req.status] ?? req.status}
           </span>
         </td>
         <td className="px-4 py-3">
@@ -221,7 +235,7 @@ export default function RequestList() {
 
       {/* Status filter */}
       <div className="flex gap-2 mb-4">
-        {(['', 'DRAFT', 'SUBMITTED', 'APPROVED', 'PARTIALLY_FILLED', 'FILLED', 'DENIED', 'CANCELLED'] as const).map((s) => (
+        {(['', 'DRAFT', 'SUBMITTED', 'APPROVED', 'LOGISTICS_REVIEW', 'FINANCE_REVIEW', 'PARTIALLY_FILLED', 'FILLED', 'DENIED', 'CANCELLED'] as const).map((s) => (
           <button
             key={s}
             onClick={() => setStatusFilter(s)}
@@ -231,7 +245,7 @@ export default function RequestList() {
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            {s === '' ? 'All' : s.replace('_', ' ')}
+            {s === '' ? 'All' : STATUS_LABEL[s as RequestStatus]}
           </button>
         ))}
       </div>

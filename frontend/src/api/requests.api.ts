@@ -57,6 +57,17 @@ function toRequest(r: Record<string, unknown>) {
     deniedAt: r.denied_at,
     denialReason: r.denial_reason,
     cancelledAt: r.cancelled_at,
+    logisticsOrderNumber: r.logistics_order_number,
+    logisticsSupplier: r.logistics_supplier,
+    logisticsNotes: r.logistics_notes,
+    logisticsApprovedByUserId: r.logistics_approved_by_user_id,
+    logisticsApprovedAt: r.logistics_approved_at,
+    logisticsApprovedByUser: toUser((r as any).logistics_approved_by),
+    financeOrderPlacedBy: r.finance_order_placed_by,
+    financeComments: r.finance_comments,
+    financeApprovedByUserId: r.finance_approved_by_user_id,
+    financeApprovedAt: r.finance_approved_at,
+    financeApprovedByUser: toUser((r as any).finance_approved_by),
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     lineItems: ((r.resource_request_line_items as any[]) ?? []).map(toLineItem),
@@ -91,7 +102,9 @@ export const requestsApi = {
           )
         ),
         requested_by:app_users!resource_requests_requested_by_user_id_fkey(id, first_name, last_name, email),
-        approved_by:app_users!resource_requests_approved_by_user_id_fkey(id, first_name, last_name, email)
+        approved_by:app_users!resource_requests_approved_by_user_id_fkey(id, first_name, last_name, email),
+        logistics_approved_by:app_users!resource_requests_logistics_approved_by_user_id_fkey(id, first_name, last_name, email),
+        finance_approved_by:app_users!resource_requests_finance_approved_by_user_id_fkey(id, first_name, last_name, email)
       `)
       .eq('id', requestId)
       .maybeSingle();
@@ -159,6 +172,54 @@ export const requestsApi = {
   cancel: async (facilityId: string, incidentId: string, requestId: string) => {
     const userId = await getCurrentAppUserId();
     const { data, error } = await supabase.from('resource_requests').update({ status: 'CANCELLED', cancelled_at: new Date().toISOString(), cancelled_by_user_id: userId }).eq('id', requestId).select().maybeSingle();
+    if (error) throw error;
+    return { data: toRequest(data as any) };
+  },
+
+  sendToLogistics: async (facilityId: string, incidentId: string, requestId: string) => {
+    const { data, error } = await supabase
+      .from('resource_requests')
+      .update({ status: 'LOGISTICS_REVIEW' })
+      .eq('id', requestId)
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    return { data: toRequest(data as any) };
+  },
+
+  submitLogistics: async (facilityId: string, incidentId: string, requestId: string, body: { logisticsOrderNumber?: string; logisticsSupplier?: string; logisticsNotes?: string }) => {
+    const userId = await getCurrentAppUserId();
+    const { data, error } = await supabase
+      .from('resource_requests')
+      .update({
+        status: 'FINANCE_REVIEW',
+        logistics_order_number: body.logisticsOrderNumber ?? null,
+        logistics_supplier: body.logisticsSupplier ?? null,
+        logistics_notes: body.logisticsNotes ?? null,
+        logistics_approved_by_user_id: userId,
+        logistics_approved_at: new Date().toISOString(),
+      })
+      .eq('id', requestId)
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    return { data: toRequest(data as any) };
+  },
+
+  submitFinance: async (facilityId: string, incidentId: string, requestId: string, body: { financeOrderPlacedBy?: string; financeComments?: string }) => {
+    const userId = await getCurrentAppUserId();
+    const { data, error } = await supabase
+      .from('resource_requests')
+      .update({
+        status: 'FILLED',
+        finance_order_placed_by: body.financeOrderPlacedBy ?? null,
+        finance_comments: body.financeComments ?? null,
+        finance_approved_by_user_id: userId,
+        finance_approved_at: new Date().toISOString(),
+      })
+      .eq('id', requestId)
+      .select()
+      .maybeSingle();
     if (error) throw error;
     return { data: toRequest(data as any) };
   },
