@@ -49,6 +49,7 @@ function toRequest(r: Record<string, unknown>) {
     neededDate: r.needed_date,
     estimatedCost: r.estimated_cost,
     justification: r.justification,
+    suitableSubstitutes: r.suitable_substitutes,
     submittedAt: r.submitted_at,
     approvedAt: r.approved_at,
     approvedByUserId: r.approved_by_user_id,
@@ -114,6 +115,7 @@ export const requestsApi = {
       needed_date: body.neededDate ?? null,
       estimated_cost: body.estimatedCost ?? null,
       justification: body.justification ?? null,
+      suitable_substitutes: body.suitableSubstitutes ?? null,
     }).select().maybeSingle();
     if (error) throw error;
     // Insert line items if provided

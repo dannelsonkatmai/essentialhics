@@ -32,6 +32,7 @@ const schema = z.object({
   deliveryBy: z.string().optional(),
   neededDate: z.string().optional(),
   justification: z.string().optional(),
+  suitableSubstitutes: z.string().optional(),
   lineItems: z.array(lineItemSchema).min(1, 'At least one line item is required'),
 });
 
@@ -177,6 +178,16 @@ export default function RequestForm213RR() {
               rows={3}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
               placeholder="Explain why these resources are needed..."
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Suitable Substitutes and/or Suggested Sources</label>
+            <textarea
+              {...register('suitableSubstitutes')}
+              rows={3}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+              placeholder="List acceptable substitutes or vendors/sources for the requested resources..."
             />
           </div>
         </div>

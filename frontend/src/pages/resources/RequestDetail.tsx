@@ -43,6 +43,7 @@ interface ResourceRequest {
   deliveryBy?: string;
   neededDate?: string;
   justification?: string;
+  suitableSubstitutes?: string;
   estimatedCost?: string;
   createdAt: string;
   requestedByUser?: { firstName: string; lastName: string };
@@ -346,6 +347,12 @@ export default function RequestDetail() {
           <div className="mt-3">
             <dt className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Justification</dt>
             <dd className="text-sm text-gray-700 whitespace-pre-wrap">{request.justification}</dd>
+          </div>
+        )}
+        {request.suitableSubstitutes && (
+          <div className="mt-3">
+            <dt className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Suitable Substitutes and/or Suggested Sources</dt>
+            <dd className="text-sm text-gray-700 whitespace-pre-wrap">{request.suitableSubstitutes}</dd>
           </div>
         )}
       </div>
