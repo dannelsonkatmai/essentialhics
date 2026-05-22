@@ -94,12 +94,9 @@ export default function IapEditor() {
     }
   }, [saveMutation]);
 
-  const exportMutation = useMutation({
-    mutationFn: () => iapApi.requestExport(iapId!),
-    onSuccess: (data) => {
-      alert(`PDF export queued. Job ID: ${data.data.exportJobId}`);
-    },
-  });
+  const handlePrint = useCallback(() => {
+    window.print();
+  }, []);
 
   if (isLoading) {
     return (
@@ -122,7 +119,7 @@ export default function IapEditor() {
   return (
     <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-gray-50">
       {/* ── Left sidebar: form checklist ─────────────────────────────────── */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
+      <aside className="iap-sidebar w-64 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
         {/* IAP header */}
         <div className="px-4 py-4 border-b border-gray-200">
           <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
@@ -217,9 +214,8 @@ export default function IapEditor() {
             </p>
           )}
           <button
-            onClick={() => exportMutation.mutate()}
-            disabled={exportMutation.isPending}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 disabled:opacity-50"
+            onClick={handlePrint}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600"
           >
             <Download className="w-3 h-3" />
             Export PDF
@@ -237,7 +233,7 @@ export default function IapEditor() {
       </aside>
 
       {/* ── Main form area ────────────────────────────────────────────────── */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="iap-main flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-6 py-6">
           {/* Form header */}
           <div className="flex items-center justify-between mb-6">
@@ -255,7 +251,7 @@ export default function IapEditor() {
               <button
                 onClick={handleForceSave}
                 disabled={saveMutation.isPending}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                className="iap-form-header-actions inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
               >
                 <Save className="w-4 h-4" />
                 {saveMutation.isPending ? 'Saving…' : 'Save'}

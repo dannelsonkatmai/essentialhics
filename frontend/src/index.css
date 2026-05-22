@@ -2,6 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+@media print {
+  /* Hide everything except the active form content */
+  body > * { display: none !important; }
+  #root { display: block !important; }
+  #root > * { display: none !important; }
+  /* The IAP editor main area holds the form; show only that */
+  .iap-print-area { display: block !important; }
+
+  aside,
+  nav,
+  header,
+  .iap-sidebar,
+  .iap-topnav { display: none !important; }
+
+  main.iap-main {
+    display: block !important;
+    overflow: visible !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .iap-form-header-actions { display: none !important; }
+
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
 @layer base {
   html {
     font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
