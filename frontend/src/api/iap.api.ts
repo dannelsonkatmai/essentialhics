@@ -126,13 +126,13 @@ function computeCompleteness(period: {
   iapForms204: any[]; iapForms207: any[]; iapForms215: any[];
   iapForms215a: any[]; iapFormsHics251: any[]; iapFormsHics252: any[];
 }): { score: number; formCompleteness: Record<string, number> } {
-  const WEIGHTS: Record<string, number> = { '201': 5, '202': 30, '203': 20, '204': 15, '207': 10, '215': 8, '215a': 7, 'hics251': 3, 'hics252': 2 };
+  // ICS-207 is now generated from ICS-203; weight merged into 203
+  const WEIGHTS: Record<string, number> = { '201': 5, '202': 30, '203': 30, '204': 15, '215': 8, '215a': 7, 'hics251': 3, 'hics252': 2 };
   const has: Record<string, number> = {
     '201': period.iapForms201.length > 0 ? 100 : 0,
     '202': period.iapForms202.length > 0 ? 100 : 0,
     '203': period.iapForms203.length > 0 ? 100 : 0,
     '204': period.iapForms204.length > 0 ? 100 : 0,
-    '207': period.iapForms207.length > 0 ? 100 : 0,
     '215': period.iapForms215.length > 0 ? 100 : 0,
     '215a': period.iapForms215a.length > 0 ? 100 : 0,
     'hics251': period.iapFormsHics251.length > 0 ? 100 : 0,
@@ -352,6 +352,26 @@ export const iapApi = {
     const userId = await getCurrentUserId();
     const { data } = await supabase.from('iap_comments').update({ is_resolved: true, resolved_by_user_id: userId, resolved_at: new Date().toISOString() }).eq('id', commentId).select().maybeSingle();
     return { data };
+  },
+
+  exportAs207: async (iapId: string): Promise<void> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token ?? '';
+    const apiBase = (import.meta as any).env?.VITE_API_URL ?? '';
+    const resp = await fetch(`${apiBase}/api/iap/${iapId}/export-207`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!resp.ok) throw new Error(`Export failed: ${resp.statusText}`);
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ICS207.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   },
 
   requestExport: async (_iapId: string, _formNumbers?: string[]) => {

@@ -167,26 +167,341 @@ export function renderForm204(rows: Record<string, unknown>[], incidentName: str
 
 // ── ICS-207: Incident Organization Chart ────────────────────────────────────
 
+interface OrgNodes207 {
+  incidentCommander: string;
+  deputyIC: string;
+  safetyOfficer: string;
+  liaisonOfficer: string;
+  publicInfoOfficer: string;
+  operationsChief: string;
+  stagingAreaManager: string;
+  branchIDirector: string;
+  branchIIDirector: string;
+  airOpsDirector: string;
+  planningChief: string;
+  resourcesUnitLeader: string;
+  situationUnitLeader: string;
+  docUnitLeader: string;
+  demobUnitLeader: string;
+  logisticsChief: string;
+  supportBranchDir: string;
+  supplyUnitLeader: string;
+  facilitiesUnitLeader: string;
+  groundSptUnitLeader: string;
+  serviceBranchDir: string;
+  commsUnitLeader: string;
+  medicalUnitLeader: string;
+  foodUnitLeader: string;
+  financeChief: string;
+  timeUnitLeader: string;
+  procurementUnitLeader: string;
+  compClaimsUnitLeader: string;
+  costUnitLeader: string;
+}
+
+/** Maps ICS-203 flat form data to the node structure used by the ICS-207 visual chart */
+export function map203DataTo207Nodes(data: Record<string, unknown>): OrgNodes207 {
+  const cmd = data as any;
+  const ops = (cmd.operationsSection ?? {}) as any;
+  const plan = (cmd.planningSection ?? {}) as any;
+  const log = (cmd.logisticsSection ?? {}) as any;
+  const fin = (cmd.financeSection ?? {}) as any;
+  return {
+    incidentCommander:    safeStr(cmd.incidentCommanderName),
+    deputyIC:             safeStr(cmd.deputyICName),
+    safetyOfficer:        safeStr(cmd.safetyOfficerName),
+    liaisonOfficer:       safeStr(cmd.liaisonOfficerName),
+    publicInfoOfficer:    safeStr(cmd.publicInfoOfficerName),
+    operationsChief:      safeStr(ops.chief),
+    stagingAreaManager:   safeStr(ops.stagingAreaManager ?? ''),
+    branchIDirector:      safeStr(ops.branchIDirector),
+    branchIIDirector:     safeStr(ops.branchIIDirector),
+    airOpsDirector:       safeStr(ops.airOpsDirector),
+    planningChief:        safeStr(plan.chief),
+    resourcesUnitLeader:  safeStr(plan.resourcesUnitLeader),
+    situationUnitLeader:  safeStr(plan.situationUnitLeader),
+    docUnitLeader:        safeStr(plan.docUnitLeader),
+    demobUnitLeader:      safeStr(plan.demobUnitLeader ?? ''),
+    logisticsChief:       safeStr(log.chief),
+    supportBranchDir:     safeStr(log.supportBranchDir ?? ''),
+    supplyUnitLeader:     safeStr(log.supplyUnitLeader),
+    facilitiesUnitLeader: safeStr(log.facilitiesUnitLeader),
+    groundSptUnitLeader:  safeStr(log.groundSupportUnitLeader),
+    serviceBranchDir:     safeStr(log.serviceBranchDir ?? ''),
+    commsUnitLeader:      safeStr(log.commsUnitLeader ?? ''),
+    medicalUnitLeader:    safeStr(log.medicalUnitLeader ?? ''),
+    foodUnitLeader:       safeStr(log.foodUnitLeader ?? ''),
+    financeChief:         safeStr(fin.chief),
+    timeUnitLeader:       safeStr(fin.timeUnitLeader),
+    procurementUnitLeader: safeStr(fin.procurementUnitLeader),
+    compClaimsUnitLeader:  safeStr(fin.compClaimsUnitLeader ?? ''),
+    costUnitLeader:        safeStr(fin.costUnitLeader),
+  };
+}
+
 export function renderForm207(data: Record<string, unknown>, incidentName: string): string {
-  const body = `
-    <div class="form-header">
-      <span class="form-number">ICS-207</span>
-      <h1>Incident Organization Chart</h1>
-      <span></span>
+  const n = map203DataTo207Nodes(data);
+  const iName = safeStr((data as any).incidentName ?? incidentName);
+  const opStart = safeStr((data as any).opPeriodStart);
+  const opEnd   = safeStr((data as any).opPeriodEnd);
+
+  function fmtDate(dt: string): string {
+    if (!dt) return '';
+    try { return new Date(dt).toLocaleDateString('en-US'); } catch { return dt; }
+  }
+  function fmtTime(dt: string): string {
+    if (!dt) return '';
+    try { return new Date(dt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }); } catch { return dt; }
+  }
+
+  function box(title: string, name: string, extraStyle = ''): string {
+    const nameHtml = name ? `<div class="box-name">${name}</div>` : '';
+    return `<div class="org-box" style="${extraStyle}">${title}${nameHtml}</div>`;
+  }
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>ICS-207 Incident Organization Chart</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    @page { size: Letter landscape; margin: 0.35in 0.4in; }
+    body { font-family: Arial, sans-serif; font-size: 9pt; color: #000; }
+    .outer { border: 2px solid #000; }
+    .title-row { text-align: center; font-size: 12pt; font-weight: bold; padding: 5px 0 3px; border-bottom: 2px solid #000; }
+    .hdr { display: flex; border-bottom: 2px solid #000; min-height: 38px; }
+    .hdr-incident { width: 30%; border-right: 2px solid #000; padding: 4px 8px; font-size: 8.5pt; }
+    .hdr-period { flex: 1; padding: 4px 8px; font-size: 8.5pt; }
+    .hdr-period-line { margin-bottom: 2px; }
+    .chart-area { padding: 6px 8px 4px; }
+    .chart-label { font-weight: bold; font-size: 8.5pt; margin-bottom: 5px; }
+    .org-box { border: 1.5px solid #000; padding: 3px 4px; text-align: center; font-size: 7.5pt; font-weight: bold;
+               line-height: 1.2; background: #fff; display: inline-block; min-height: 30px; }
+    .box-name { font-size: 7pt; font-weight: normal; color: #333; margin-top: 2px; }
+    .vl { width: 1.5px; background: #000; margin: 0 auto; }
+    .hl { height: 1.5px; background: #000; }
+    .footer-row { display: flex; border-top: 2px solid #000; }
+    .fc { padding: 3px 6px; font-size: 7.5pt; border-right: 1.5px solid #000; white-space: nowrap; }
+    .fc:last-child { border-right: none; flex: 1; }
+    /* layout table */
+    .lt { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .lt td { padding: 0; vertical-align: top; }
+    .center { text-align: center; }
+    .col-flex { display: flex; flex-direction: column; align-items: center; }
+  </style>
+</head>
+<body>
+<div class="outer">
+  <div class="title-row">INCIDENT ORGANIZATION CHART (ICS 207)</div>
+  <div class="hdr">
+    <div class="hdr-incident">
+      <strong>1. Incident Name:</strong><br/>
+      <span style="font-size:9pt;">${iName}</span>
     </div>
-    ${field('Incident Name', data['incidentName'] ?? incidentName)}
-    ${field('Operational Period', safeStr(data['opPeriodStart']) + ' – ' + safeStr(data['opPeriodEnd']))}
-    <p style="margin-top:16px;color:#666;font-style:italic;">
-      [Live org chart rendered from org board data. See digital version for interactive view.]
-    </p>
-    <table>
-      <tr><th>Position</th><th>Assigned Person</th></tr>
-      ${Array.isArray(data['nodes'])
-        ? (data['nodes'] as any[]).map(n =>
-            `<tr><td>${safeStr(n.role)}</td><td>${safeStr(n.name)}</td></tr>`).join('')
-        : '<tr><td colspan="2">No assignments.</td></tr>'}
-    </table>`;
-  return pageWrapper('ICS-207 Incident Organization Chart', body);
+    <div class="hdr-period">
+      <div class="hdr-period-line"><strong>2. Operational Period:</strong>&nbsp;&nbsp;Date From: ${fmtDate(opStart)}&nbsp;&nbsp;&nbsp;&nbsp;Date To: ${fmtDate(opEnd)}</div>
+      <div class="hdr-period-line" style="padding-left:120px;">Time From: ${fmtTime(opStart)}&nbsp;&nbsp;&nbsp;&nbsp;Time To: ${fmtTime(opEnd)}</div>
+    </div>
+  </div>
+
+  <div class="chart-area">
+    <div class="chart-label">3. Organization Chart</div>
+    <table class="lt" style="margin-bottom:2px;">
+      <colgroup>
+        <col style="width:13%"/>
+        <col style="width:7%"/>
+        <col style="width:7%"/>
+        <col style="width:7%"/>
+        <col style="width:4%"/>
+        <col style="width:15%"/>
+        <col style="width:5%"/>
+        <col style="width:14%"/>
+        <col style="width:14%"/>
+        <col style="width:14%"/>
+      </colgroup>
+
+      <!-- ROW 1: IC + Command Staff -->
+      <tr>
+        <td></td>
+        <td colspan="3" class="center">
+          <div class="col-flex">
+            ${box('Incident Commander(s)' + (n.deputyIC ? '<br/><span style="font-size:6.5pt;font-weight:normal;">Deputy: ' + n.deputyIC + '</span>' : ''), n.incidentCommander, 'width:130px;min-height:46px;font-size:8pt;')}
+            <div class="vl" style="height:10px;"></div>
+          </div>
+        </td>
+        <td></td>
+        <td colspan="2" style="padding-left:6px;">
+          <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px;">
+            ${box('Liaison Officer', n.liaisonOfficer, 'width:126px;')}
+            ${box('Safety Officer', n.safetyOfficer, 'width:126px;')}
+            ${box('Public Information Officer', n.publicInfoOfficer, 'width:126px;')}
+          </div>
+        </td>
+        <td colspan="3"></td>
+      </tr>
+
+      <!-- ROW 2: horizontal line spanning sections from IC -->
+      <tr style="height:14px;">
+        <td colspan="1" style="padding:0;"></td>
+        <td colspan="3" style="padding:0;vertical-align:bottom;">
+          <div class="hl" style="margin:0;"></div>
+        </td>
+        <td colspan="6" style="padding:0;"></td>
+      </tr>
+
+      <!-- ROW 3: Section chiefs row + staging area under ops -->
+      <tr>
+        <td class="center">
+          <div class="col-flex">
+            <div class="vl" style="height:10px;"></div>
+            ${box('Operations Section Chief', n.operationsChief, 'width:118px;')}
+            <div class="vl" style="height:10px;"></div>
+          </div>
+        </td>
+        <td colspan="2" class="center" style="padding-top:10px;">
+          ${box('Staging Area Manager', n.stagingAreaManager, 'width:100px;font-size:7pt;')}
+        </td>
+        <td></td>
+        <td></td>
+        <td class="center">
+          <div class="col-flex">
+            <div class="vl" style="height:10px;"></div>
+            ${box('Planning Section Chief', n.planningChief, 'width:118px;')}
+            <div class="vl" style="height:10px;"></div>
+          </div>
+        </td>
+        <td></td>
+        <td class="center">
+          <div class="col-flex">
+            <div class="vl" style="height:10px;"></div>
+            ${box('Logistics Section Chief', n.logisticsChief, 'width:118px;')}
+            <div class="vl" style="height:10px;"></div>
+          </div>
+        </td>
+        <td></td>
+        <td class="center">
+          <div class="col-flex">
+            <div class="vl" style="height:10px;"></div>
+            ${box('Finance/Admin Section Chief', n.financeChief, 'width:118px;')}
+            <div class="vl" style="height:10px;"></div>
+          </div>
+        </td>
+      </tr>
+
+      <!-- ROW 4: Ops branch horizontal connector + sub-unit row 1 -->
+      <tr>
+        <td colspan="4" style="padding:0;vertical-align:top;">
+          <div style="height:1.5px;background:#000;margin-left:8%;margin-right:0;"></div>
+        </td>
+        <td></td>
+        <td class="center">${box('Resources Unit Ldr.', n.resourcesUnitLeader, 'width:112px;font-size:7pt;')}</td>
+        <td></td>
+        <td class="center">${box('Support Branch Dir.', n.supportBranchDir, 'width:112px;font-size:7pt;')}</td>
+        <td></td>
+        <td class="center">${box('Time Unit Ldr.', n.timeUnitLeader, 'width:112px;font-size:7pt;')}</td>
+      </tr>
+
+      <!-- ROW 5: Ops branches + sub-unit row 2 -->
+      <tr>
+        <td class="center" style="padding-top:2px;">
+          <div class="col-flex">
+            <div class="vl" style="height:8px;"></div>
+            ${box('Branch I Dir.', n.branchIDirector, 'width:102px;font-size:7pt;')}
+          </div>
+        </td>
+        <td class="center" style="padding-top:2px;">
+          <div class="col-flex">
+            <div class="vl" style="height:8px;"></div>
+            ${box('Branch II Dir.', n.branchIIDirector, 'width:80px;font-size:7pt;')}
+          </div>
+        </td>
+        <td class="center" style="padding-top:2px;">
+          <div class="col-flex">
+            <div class="vl" style="height:8px;"></div>
+            ${box('Air Ops Dir.', n.airOpsDirector, 'width:80px;font-size:7pt;')}
+          </div>
+        </td>
+        <td></td>
+        <td></td>
+        <td class="center" style="padding-top:4px;">${box('Situation Unit Ldr.', n.situationUnitLeader, 'width:112px;font-size:7pt;')}</td>
+        <td></td>
+        <td class="center" style="padding-top:4px;">${box('Supply Unit Ldr.', n.supplyUnitLeader, 'width:112px;font-size:7pt;')}</td>
+        <td></td>
+        <td class="center" style="padding-top:4px;">${box('Procurement Unit Ldr.', n.procurementUnitLeader, 'width:112px;font-size:7pt;')}</td>
+      </tr>
+
+      <!-- ROW 6: sub-unit row 3 -->
+      <tr>
+        <td colspan="5"></td>
+        <td class="center" style="padding-top:4px;">${box('Documentation Unit Ldr.', n.docUnitLeader, 'width:112px;font-size:7pt;')}</td>
+        <td></td>
+        <td class="center" style="padding-top:4px;">${box('Facilities Unit Ldr.', n.facilitiesUnitLeader, 'width:112px;font-size:7pt;')}</td>
+        <td></td>
+        <td class="center" style="padding-top:4px;">${box('Comp./Claims Unit Ldr.', n.compClaimsUnitLeader, 'width:112px;font-size:7pt;')}</td>
+      </tr>
+
+      <!-- ROW 7: sub-unit row 4 -->
+      <tr>
+        <td colspan="5"></td>
+        <td class="center" style="padding-top:4px;">${box('Demobilization Unit Ldr.', n.demobUnitLeader, 'width:112px;font-size:7pt;')}</td>
+        <td></td>
+        <td class="center" style="padding-top:4px;">${box('Ground Spt. Unit Ldr.', n.groundSptUnitLeader, 'width:112px;font-size:7pt;')}</td>
+        <td></td>
+        <td class="center" style="padding-top:4px;">${box('Cost Unit Ldr.', n.costUnitLeader, 'width:112px;font-size:7pt;')}</td>
+      </tr>
+
+      <!-- ROW 8: Service Branch -->
+      <tr>
+        <td colspan="5"></td>
+        <td></td>
+        <td></td>
+        <td class="center" style="padding-top:4px;">${box('Service Branch Dir.', n.serviceBranchDir, 'width:112px;font-size:7pt;')}</td>
+        <td colspan="2"></td>
+      </tr>
+
+      <!-- ROW 9: Comms -->
+      <tr>
+        <td colspan="5"></td>
+        <td></td>
+        <td></td>
+        <td class="center" style="padding-top:4px;">${box('Comms Unit Ldr.', n.commsUnitLeader, 'width:112px;font-size:7pt;')}</td>
+        <td colspan="2"></td>
+      </tr>
+
+      <!-- ROW 10: Medical -->
+      <tr>
+        <td colspan="5"></td>
+        <td></td>
+        <td></td>
+        <td class="center" style="padding-top:4px;">${box('Medical Unit Ldr.', n.medicalUnitLeader, 'width:112px;font-size:7pt;')}</td>
+        <td colspan="2"></td>
+      </tr>
+
+      <!-- ROW 11: Food -->
+      <tr>
+        <td colspan="5"></td>
+        <td></td>
+        <td></td>
+        <td class="center" style="padding-top:4px;">${box('Food Unit Ldr.', n.foodUnitLeader, 'width:112px;font-size:7pt;')}</td>
+        <td colspan="2"></td>
+      </tr>
+
+      <tr><td colspan="10" style="height:6px;"></td></tr>
+    </table>
+  </div>
+
+  <div class="footer-row">
+    <div class="fc"><strong>ICS 207</strong></div>
+    <div class="fc">IAP Page ___</div>
+    <div class="fc"><strong>4. Prepared by:</strong> &nbsp;Name: ______________________</div>
+    <div class="fc">Position/Title: ______________________</div>
+    <div class="fc">Signature: ______________________</div>
+    <div class="fc">Date/Time: ______________________</div>
+  </div>
+</div>
+</body>
+</html>`;
 }
 
 // ── ICS-213: General Message ─────────────────────────────────────────────────

@@ -7,6 +7,7 @@ import { logger } from '../config/logger';
 import {
   renderForm201, renderForm202, renderForm203, renderForm204, renderForm207,
   renderForm213, renderForm215, renderForm215a, renderFormHics251, renderFormHics252,
+  map203DataTo207Nodes,
 } from '../pdf/templates';
 
 async function renderHtmlToPdf(html: string): Promise<Buffer> {
@@ -20,6 +21,26 @@ async function renderHtmlToPdf(html: string): Promise<Buffer> {
     const pdf = await page.pdf({
       format: 'Letter',
       margin: { top: '0.5in', right: '0.5in', bottom: '0.5in', left: '0.5in' },
+      printBackground: true,
+    });
+    return Buffer.from(pdf);
+  } finally {
+    await browser.close();
+  }
+}
+
+async function renderHtmlToPdfLandscape(html: string): Promise<Buffer> {
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu'],
+  });
+  try {
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    const pdf = await page.pdf({
+      format: 'Letter',
+      landscape: true,
+      margin: { top: '0in', right: '0in', bottom: '0in', left: '0in' },
       printBackground: true,
     });
     return Buffer.from(pdf);
@@ -90,7 +111,8 @@ pdfExportQueue.process(PDF_EXPORT_CONCURRENCY, async (job) => {
       take: 50,
     });
 
-    const target = formNumbers ?? ['201', '202', '203', '204', '207', '213', '215', '215a', 'hics251', 'hics252'];
+    // ICS-207 is now generated from ICS-203 data; '207' is not a standalone form in the list
+    const target = formNumbers ?? ['201', '202', '203', '204', '213', '215', '215a', 'hics251', 'hics252'];
 
     const pdfParts: Buffer[] = [];
 
@@ -99,9 +121,15 @@ pdfExportQueue.process(PDF_EXPORT_CONCURRENCY, async (job) => {
       switch (fn) {
         case '201': html = renderForm201(f['201'], incidentName); break;
         case '202': html = renderForm202(f['202'], incidentName); break;
-        case '203': html = renderForm203(f['203'], incidentName); break;
+        case '203': {
+          // ICS-203 list page followed immediately by ICS-207 visual org chart
+          html = renderForm203(f['203'], incidentName);
+          pdfParts.push(await renderHtmlToPdf(html));
+          const html207 = renderForm207(f['203'], incidentName);
+          pdfParts.push(await renderHtmlToPdfLandscape(html207));
+          continue;
+        }
         case '204': html = renderForm204(f['204'], incidentName); break;
-        case '207': html = renderForm207(f['207'], incidentName); break;
         case '213':
           for (const msg of msgs213) {
             html = renderForm213(msg.formData as Record<string, unknown>);

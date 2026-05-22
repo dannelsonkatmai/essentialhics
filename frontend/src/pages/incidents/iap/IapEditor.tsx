@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ChevronRight, CircleCheck as CheckCircle, Circle, CircleAlert as AlertCircle, FileText, Save, Download, Send, ChevronDown, ChevronUp, BookOpen, Users } from 'lucide-react';
+import { ChevronRight, CircleCheck as CheckCircle, Circle, CircleAlert as AlertCircle, FileText, Save, Download, Send, ChevronDown, ChevronUp, BookOpen, Users, Network } from 'lucide-react';
 import { iapApi, Iap } from '../../../api/iap.api';
 import { useIncidentSocket } from '../../../hooks/useSocket';
 import IapApprovalPanel from './IapApprovalPanel';
@@ -9,7 +9,6 @@ import Form201 from './forms/Form201';
 import Form202 from './forms/Form202';
 import Form203 from './forms/Form203';
 import Form204 from './forms/Form204';
-import Form207 from './forms/Form207';
 import Form213 from './forms/Form213';
 import Form215 from './forms/Form215';
 import Form215a from './forms/Form215a';
@@ -19,9 +18,8 @@ import FormHics252 from './forms/FormHics252';
 const FORMS = [
   { key: '201', label: 'ICS-201', title: 'Incident Briefing', weight: 5 },
   { key: '202', label: 'ICS-202', title: 'Incident Objectives', weight: 30 },
-  { key: '203', label: 'ICS-203', title: 'Organization Assignment List', weight: 20 },
+  { key: '203', label: 'ICS-203', title: 'Organization Assignment List', weight: 30 },
   { key: '204', label: 'ICS-204', title: 'Assignment List', weight: 15 },
-  { key: '207', label: 'ICS-207', title: 'Org Chart', weight: 10 },
   { key: '213', label: 'ICS-213', title: 'General Message Log', weight: 0 },
   { key: '215', label: 'ICS-215', title: 'Operational Planning Worksheet', weight: 8 },
   { key: '215a', label: 'ICS-215A', title: 'IAP Safety Analysis', weight: 7 },
@@ -45,6 +43,7 @@ export default function IapEditor() {
   const [activeForm, setActiveForm] = useState<FormKey>('202');
   const [showApproval, setShowApproval] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [exporting207, setExporting207] = useState(false);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSave = useRef<{ formNumber: string; formData: Record<string, unknown> } | null>(null);
 
@@ -97,6 +96,18 @@ export default function IapEditor() {
   const handlePrint = useCallback(() => {
     window.print();
   }, []);
+
+  const handleExport207 = useCallback(async () => {
+    if (!iapId) return;
+    setExporting207(true);
+    try {
+      await iapApi.exportAs207(iapId);
+    } catch (err) {
+      console.error('ICS-207 export failed', err);
+    } finally {
+      setExporting207(false);
+    }
+  }, [iapId]);
 
   if (isLoading) {
     return (
@@ -220,6 +231,16 @@ export default function IapEditor() {
             <Download className="w-3 h-3" />
             Export PDF
           </button>
+          {activeForm === '203' && (
+            <button
+              onClick={handleExport207}
+              disabled={exporting207}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs border border-blue-200 rounded-lg hover:bg-blue-50 text-blue-700 disabled:opacity-50 transition-colors"
+            >
+              <Network className="w-3 h-3" />
+              {exporting207 ? 'Generating…' : 'Export as ICS-207'}
+            </button>
+          )}
           {canWorkflow && (
             <button
               onClick={() => setShowApproval(true)}
@@ -326,8 +347,6 @@ function FormRenderer({
       return <Form203 data={withDefaults(period.iapForms203[0]?.formData ?? {}) as any} {...props} />;
     case '204':
       return <Form204 forms={period.iapForms204 ?? []} iapId={iap.id} canEdit={canEdit} />;
-    case '207':
-      return <Form207 data={withDefaults(period.iapForms207[0]?.formData ?? {}) as any} {...props} />;
     case '213':
       return <Form213 facilityId={facilityId} incidentId={incidentId} />;
     case '215':

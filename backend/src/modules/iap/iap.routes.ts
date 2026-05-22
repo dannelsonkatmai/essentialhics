@@ -8,6 +8,8 @@ import * as svc from './iap.service';
 import * as workflow from './iap.workflow';
 import { enqueuePdfExport } from '../../jobs/queue';
 import { prisma } from '../../config/database';
+import { renderForm207, map203DataTo207Nodes } from '../../pdf/templates';
+import puppeteer from 'puppeteer';
 
 const router = Router({ mergeParams: true });
 router.use(requireAuth);
@@ -220,6 +222,56 @@ router.get(
   async (req: AuthenticatedRequest, res) => {
     const job = await prisma.exportJob.findUniqueOrThrow({ where: { id: req.params.exportJobId! } });
     res.json(job);
+  },
+);
+
+// ── ICS-207 on-demand PDF from ICS-203 data ──────────────────────────────────
+
+router.post(
+  '/:iapId/export-207',
+  requirePermission('iap:read'),
+  async (req: AuthenticatedRequest, res) => {
+    const iapId = req.params.iapId!;
+
+    const iap = await prisma.iap.findUniqueOrThrow({
+      where: { id: iapId },
+      include: {
+        operationalPeriod: {
+          include: {
+            incident: { select: { name: true } },
+            iapForms203: { orderBy: { createdAt: 'desc' }, take: 1 },
+          },
+        },
+      },
+    });
+
+    const form203Data = (iap.operationalPeriod.iapForms203[0]?.positionAssignments ?? {}) as Record<string, unknown>;
+    const incidentName = iap.operationalPeriod.incident.name;
+
+    const html = renderForm207(form203Data, incidentName);
+
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu'],
+    });
+    try {
+      const page = await browser.newPage();
+      await page.setContent(html, { waitUntil: 'networkidle0' });
+      const pdf = await page.pdf({
+        format: 'Letter',
+        landscape: true,
+        margin: { top: '0in', right: '0in', bottom: '0in', left: '0in' },
+        printBackground: true,
+      });
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="ICS207-${incidentName.replace(/\s+/g, '-')}.pdf"`,
+        'Content-Length': pdf.length,
+      });
+      res.send(Buffer.from(pdf));
+    } finally {
+      await browser.close();
+    }
   },
 );
 
