@@ -46,6 +46,7 @@ export default function IapEditor() {
   const [showApproval, setShowApproval] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSave = useRef<{ formNumber: string; formData: Record<string, unknown> } | null>(null);
 
   // Real-time updates
   useIncidentSocket(incidentId);
@@ -77,10 +78,20 @@ export default function IapEditor() {
   });
 
   const handleAutoSave = useCallback((formNumber: string, formData: Record<string, unknown>) => {
+    pendingSave.current = { formNumber, formData };
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(() => {
       saveMutation.mutate({ formNumber, formData });
-    }, 1500); // 1.5s debounce
+      pendingSave.current = null;
+    }, 1500);
+  }, [saveMutation]);
+
+  const handleForceSave = useCallback(() => {
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    if (pendingSave.current) {
+      saveMutation.mutate(pendingSave.current);
+      pendingSave.current = null;
+    }
   }, [saveMutation]);
 
   const exportMutation = useMutation({
@@ -240,6 +251,16 @@ export default function IapEditor() {
                 </p>
               )}
             </div>
+            {canEdit && (
+              <button
+                onClick={handleForceSave}
+                disabled={saveMutation.isPending}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
+              >
+                <Save className="w-4 h-4" />
+                {saveMutation.isPending ? 'Saving…' : 'Save'}
+              </button>
+            )}
           </div>
 
           {/* Active form */}
