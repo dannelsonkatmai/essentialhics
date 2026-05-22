@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle, Clock, ListFilter as Filter } from 'lucide-react';
 import { format } from 'date-fns';
@@ -22,6 +22,7 @@ const SEVERITY_LABELS: Record<string, string> = {
 };
 
 export default function IncidentList() {
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const facilityId = user?.primaryFacilityId ?? user?.roles?.[0]?.facilityId ?? '';
   const [showCreate, setShowCreate] = useState(false);
@@ -98,7 +99,7 @@ export default function IncidentList() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {incidents.map((inc: Incident) => (
-                <tr key={inc.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={inc.id} onClick={() => navigate(`/incidents/${inc.id}`)} className="hover:bg-gray-50 transition-colors cursor-pointer">
                   <td className="px-6 py-4">
                     <div className="font-medium text-gray-900">{inc.name}</div>
                     <div className="text-xs text-gray-400 mt-0.5">{inc.incidentNumber}</div>
