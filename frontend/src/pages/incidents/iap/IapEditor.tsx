@@ -284,27 +284,56 @@ function FormRenderer({
   const period = iap.operationalPeriod;
   const props = { canEdit, onAutoSave };
 
+  // Default values derived from incident and period — only used when the form hasn't saved its own values yet
+  const incidentDefaults = {
+    incidentName: period.incident.name,
+    opPeriodStart: period.startTime ? period.startTime.slice(0, 16) : '',
+    opPeriodEnd: period.endTime ? period.endTime.slice(0, 16) : '',
+  };
+
+  function withDefaults(saved: Record<string, unknown>): Record<string, unknown> {
+    return {
+      incidentName: incidentDefaults.incidentName,
+      opPeriodStart: incidentDefaults.opPeriodStart,
+      opPeriodEnd: incidentDefaults.opPeriodEnd,
+      ...saved,
+    };
+  }
+
   switch (formKey) {
     case '201':
-      return <Form201 data={(period.iapForms201[0]?.formData ?? {}) as any} {...props} />;
+      return <Form201 data={withDefaults(period.iapForms201[0]?.formData ?? {}) as any} {...props} />;
     case '202':
-      return <Form202 data={(period.iapForms202[0]?.formData ?? {}) as any} {...props} />;
+      return <Form202 data={withDefaults(period.iapForms202[0]?.formData ?? {}) as any} {...props} />;
     case '203':
-      return <Form203 data={(period.iapForms203[0]?.formData ?? {}) as any} {...props} />;
+      return <Form203 data={withDefaults(period.iapForms203[0]?.formData ?? {}) as any} {...props} />;
     case '204':
       return <Form204 forms={period.iapForms204 ?? []} iapId={iap.id} canEdit={canEdit} />;
     case '207':
-      return <Form207 data={(period.iapForms207[0]?.formData ?? {}) as any} {...props} />;
+      return <Form207 data={withDefaults(period.iapForms207[0]?.formData ?? {}) as any} {...props} />;
     case '213':
       return <Form213 facilityId={facilityId} incidentId={incidentId} />;
     case '215':
-      return <Form215 data={(period.iapForms215[0]?.formData ?? {}) as any} {...props} />;
+      return <Form215 data={withDefaults(period.iapForms215[0]?.formData ?? {}) as any} {...props} />;
     case '215a':
-      return <Form215a data={(period.iapForms215a[0]?.formData ?? {}) as any} {...props} />;
+      return <Form215a data={withDefaults(period.iapForms215a[0]?.formData ?? {}) as any} {...props} />;
     case 'hics251':
       return <FormHics251 data={(period.iapFormsHics251[0]?.formData ?? {}) as any} {...props} />;
-    case 'hics252':
-      return <FormHics252 data={(period.iapFormsHics252[0] ?? {}) as any} canEdit={canEdit} />;
+    case 'hics252': {
+      const h252saved = period.iapFormsHics252[0] ?? {};
+      const h252data = {
+        ...h252saved,
+        formData: {
+          incidentName: incidentDefaults.incidentName,
+          opPeriodStart: incidentDefaults.opPeriodStart,
+          opPeriodEnd: incidentDefaults.opPeriodEnd,
+          ...(typeof h252saved === 'object' && h252saved !== null && 'formData' in h252saved
+            ? (h252saved as any).formData ?? {}
+            : {}),
+        },
+      };
+      return <FormHics252 data={h252data as any} canEdit={canEdit} />;
+    }
     default:
       return null;
   }
