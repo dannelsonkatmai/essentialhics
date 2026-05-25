@@ -1,9 +1,5 @@
 import { NavLink, useParams } from 'react-router-dom';
-import {
-  Users, Building2, FileText, Settings,
-  AlertTriangle, BookOpen, Package, ClipboardList,
-  DollarSign, Warehouse,
-} from 'lucide-react';
+import { Users, Building2, FileText, Settings, TriangleAlert as AlertTriangle, BookOpen, Package, ClipboardList, DollarSign, Warehouse, ContactRound } from 'lucide-react';
 
 interface NavItem {
   label: string;
@@ -42,6 +38,7 @@ const navItems: NavItem[] = [
   },
   // Administration (Phase 1 + 3)
   { label: 'Users', to: '/admin/users', icon: Users, section: 'Admin' },
+  { label: 'Personnel Library', to: '/admin/personnel-library', icon: ContactRound, section: 'Admin' },
   { label: 'Facilities', to: '/admin/facilities', icon: Building2, section: 'Admin' },
   { label: 'Resource Catalog', to: '/admin/resource-catalog', icon: Warehouse, section: 'Admin' },
   { label: 'Mutual Aid', to: '/admin/mutual-aid', icon: Users, section: 'Admin' },

@@ -344,7 +344,7 @@ function FormRenderer({
     case '202':
       return <Form202 data={withDefaults(period.iapForms202[0]?.formData ?? {}) as any} {...props} />;
     case '203':
-      return <Form203 data={withDefaults(period.iapForms203[0]?.formData ?? {}) as any} {...props} />;
+      return <Form203 data={withDefaults(period.iapForms203[0]?.formData ?? {}) as any} facilityId={facilityId} {...props} />;
     case '204':
       return <Form204 forms={period.iapForms204 ?? []} iapId={iap.id} canEdit={canEdit} />;
     case '213':

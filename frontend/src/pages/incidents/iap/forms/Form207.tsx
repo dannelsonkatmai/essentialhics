@@ -1,32 +1,36 @@
 import { useState } from 'react';
 import { Field, FormSection, Input } from './FormField';
+import PersonnelPicker from './PersonnelPicker';
+import type { HicsRole } from '../../../../types';
 
 interface OrgNode {
   role: string;
   name: string;
   parentRole?: string;
+  hicsRole?: HicsRole;
 }
 
 interface Props {
   data: Record<string, any>;
   canEdit: boolean;
+  facilityId?: string;
   onAutoSave: (formNumber: string, data: Record<string, unknown>) => void;
 }
 
 const DEFAULT_NODES: OrgNode[] = [
-  { role: 'Incident Commander', name: '' },
-  { role: 'Deputy IC', name: '', parentRole: 'Incident Commander' },
-  { role: 'Safety Officer', name: '', parentRole: 'Incident Commander' },
-  { role: 'Liaison Officer', name: '', parentRole: 'Incident Commander' },
-  { role: 'Operations Section Chief', name: '', parentRole: 'Incident Commander' },
-  { role: 'Planning Section Chief', name: '', parentRole: 'Incident Commander' },
-  { role: 'Logistics Section Chief', name: '', parentRole: 'Incident Commander' },
-  { role: 'Finance/Admin Section Chief', name: '', parentRole: 'Incident Commander' },
+  { role: 'Incident Commander', name: '', hicsRole: 'INCIDENT_COMMANDER' },
+  { role: 'Deputy IC', name: '', parentRole: 'Incident Commander', hicsRole: 'DEPUTY_INCIDENT_COMMANDER' },
+  { role: 'Safety Officer', name: '', parentRole: 'Incident Commander', hicsRole: 'SAFETY_OFFICER' },
+  { role: 'Liaison Officer', name: '', parentRole: 'Incident Commander', hicsRole: 'LIAISON_OFFICER' },
+  { role: 'Operations Section Chief', name: '', parentRole: 'Incident Commander', hicsRole: 'OPERATIONS_SECTION_CHIEF' },
+  { role: 'Planning Section Chief', name: '', parentRole: 'Incident Commander', hicsRole: 'PLANNING_SECTION_CHIEF' },
+  { role: 'Logistics Section Chief', name: '', parentRole: 'Incident Commander', hicsRole: 'LOGISTICS_SECTION_CHIEF' },
+  { role: 'Finance/Admin Section Chief', name: '', parentRole: 'Incident Commander', hicsRole: 'FINANCE_ADMIN_SECTION_CHIEF' },
 ];
 
-export default function Form207({ data, canEdit, onAutoSave }: Props) {
+export default function Form207({ data, canEdit, facilityId, onAutoSave }: Props) {
   const [nodes, setNodes] = useState<OrgNode[]>(
-    (data.nodes as OrgNode[]) ?? DEFAULT_NODES,
+    (data.nodes as OrgNode[])?.map((n, i) => ({ ...DEFAULT_NODES[i], ...n })) ?? DEFAULT_NODES,
   );
   const [incidentName, setIncidentName] = useState(data.incidentName ?? '');
   const [opPeriodStart, setOpPeriodStart] = useState(data.opPeriodStart ?? '');
@@ -63,12 +67,30 @@ export default function Form207({ data, canEdit, onAutoSave }: Props) {
       </FormSection>
 
       <FormSection title="2. Org Chart — Assigned Personnel">
-        <p className="text-xs text-gray-500 mb-3">Enter the name assigned to each HICS position. The org board auto-populates from position assignments.</p>
+        <p className="text-xs text-gray-500 mb-3">
+          Enter the name assigned to each HICS position. Use the{' '}
+          <span className="inline-flex items-center gap-0.5 text-brand-600 font-medium">library icon</span>
+          {' '}to pull from your facility's personnel library.
+        </p>
         <div className="grid grid-cols-2 gap-3">
           {nodes.map((node, idx) => (
             <Field key={node.role} label={node.role}>
-              <Input value={node.name} readOnly={!canEdit} onChange={e => updateNode(idx, e.target.value)}
-                placeholder="Assigned person name" />
+              <div className="flex items-center gap-1">
+                <Input
+                  value={node.name}
+                  readOnly={!canEdit}
+                  onChange={e => updateNode(idx, e.target.value)}
+                  placeholder="Assigned person name"
+                  className="flex-1"
+                />
+                {canEdit && facilityId && node.hicsRole && (
+                  <PersonnelPicker
+                    facilityId={facilityId}
+                    hicsRole={node.hicsRole}
+                    onSelect={name => updateNode(idx, name)}
+                  />
+                )}
+              </div>
             </Field>
           ))}
         </div>

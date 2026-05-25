@@ -32,6 +32,9 @@ import OrgBoard from './pages/incidents/orgboard/OrgBoard';
 // Phase 2 — Templates
 import TemplateLibrary from './pages/admin/templates/TemplateLibrary';
 
+// Personnel Library
+import PersonnelLibrary from './pages/admin/PersonnelLibrary';
+
 // Phase 3 — Resources
 import ResourceStatusBoard from './pages/resources/ResourceStatusBoard';
 import ResourceDetail from './pages/resources/ResourceDetail';
@@ -145,6 +148,9 @@ function App() {
 
             {/* Phase 2 Templates */}
             <Route path="/admin/templates" element={<TemplateLibrary />} />
+
+            {/* Personnel Library */}
+            <Route path="/admin/personnel-library" element={<PersonnelLibrary />} />
 
             {/* Phase 3 Resources */}
             <Route path="/incidents/:incidentId/resources" element={<ResourceStatusBoard />} />

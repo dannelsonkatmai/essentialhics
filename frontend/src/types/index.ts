@@ -140,6 +140,44 @@ export interface PaginatedResponse<T> {
   };
 }
 
+export interface PersonnelRecord {
+  id: string;
+  facilityId: string;
+  firstName: string;
+  lastName: string;
+  title?: string;
+  defaultHicsRole?: HicsRole;
+  phoneMobile?: string;
+  phoneWork?: string;
+  pagerNumber?: string;
+  email?: string;
+  agency?: string;
+  notes?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PersonnelRosterMember {
+  id: string;
+  rosterId: string;
+  personnelId: string;
+  designatedHicsRole?: HicsRole;
+  sortOrder: number;
+  createdAt: string;
+  personnel?: PersonnelRecord;
+}
+
+export interface PersonnelRoster {
+  id: string;
+  facilityId: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  members?: PersonnelRosterMember[];
+}
+
 export const HICS_ROLE_LABELS: Record<HicsRole, string> = {
   SYSTEM_ADMIN: 'System Administrator',
   SYSTEM_VIEWER: 'System Viewer',
