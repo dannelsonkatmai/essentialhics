@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ChevronRight, CircleCheck as CheckCircle, Circle, CircleAlert as AlertCircle, FileText, Save, Download, Send, ChevronDown, ChevronUp, BookOpen, Users, Network } from 'lucide-react';
+import { ChevronRight, CircleCheck as CheckCircle, Circle, CircleAlert as AlertCircle, FileText, Save, Download, Send, ChevronDown, ChevronUp, BookOpen, Users, Network, Image as ImageIcon } from 'lucide-react';
 import { iapApi, Iap } from '../../../api/iap.api';
 import { useIncidentSocket } from '../../../hooks/useSocket';
 import IapApprovalPanel from './IapApprovalPanel';
@@ -44,6 +44,7 @@ export default function IapEditor() {
   const [showApproval, setShowApproval] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [exporting207, setExporting207] = useState(false);
+  const [exportingPhotoChart, setExportingPhotoChart] = useState(false);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSave = useRef<{ formNumber: string; formData: Record<string, unknown> } | null>(null);
 
@@ -106,6 +107,18 @@ export default function IapEditor() {
       console.error('ICS-207 export failed', err);
     } finally {
       setExporting207(false);
+    }
+  }, [iapId]);
+
+  const handleExportPhotoChart = useCallback(async () => {
+    if (!iapId) return;
+    setExportingPhotoChart(true);
+    try {
+      await iapApi.exportPhotoOrgChart(iapId);
+    } catch (err) {
+      console.error('Photo org chart export failed', err);
+    } finally {
+      setExportingPhotoChart(false);
     }
   }, [iapId]);
 
@@ -241,6 +254,14 @@ export default function IapEditor() {
               {exporting207 ? 'Generating…' : 'Export as ICS-207'}
             </button>
           )}
+          <button
+            onClick={handleExportPhotoChart}
+            disabled={exportingPhotoChart}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs border border-emerald-200 rounded-lg hover:bg-emerald-50 text-emerald-700 disabled:opacity-50 transition-colors"
+          >
+            <ImageIcon className="w-3 h-3" />
+            {exportingPhotoChart ? 'Generating…' : 'Photo Org Chart'}
+          </button>
           {canWorkflow && (
             <button
               onClick={() => setShowApproval(true)}

@@ -354,6 +354,27 @@ export const iapApi = {
     return { data };
   },
 
+  exportPhotoOrgChart: async (iapId: string): Promise<void> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token ?? '';
+    const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL ?? '';
+    const resp = await fetch(`${supabaseUrl}/functions/v1/export-photo-org-chart/${iapId}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!resp.ok) throw new Error(`Photo org chart export failed: ${resp.statusText}`);
+    const html = await resp.text();
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) throw new Error('Popup blocked — please allow popups for this site.');
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    // Give images a moment to load before triggering print
+    setTimeout(() => {
+      printWindow.print();
+    }, 800);
+  },
+
   exportAs207: async (iapId: string): Promise<void> => {
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token ?? '';

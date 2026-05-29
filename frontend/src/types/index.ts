@@ -153,6 +153,7 @@ export interface PersonnelRecord {
   email?: string;
   agency?: string;
   notes?: string;
+  photoUrl?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

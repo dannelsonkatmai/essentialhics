@@ -23,6 +23,7 @@ function toPersonnel(r: Record<string, unknown>): PersonnelRecord {
     email: r.email as string | undefined,
     agency: r.agency as string | undefined,
     notes: r.notes as string | undefined,
+    photoUrl: r.photo_url as string | undefined,
     isActive: r.is_active as boolean,
     createdAt: r.created_at as string,
     updatedAt: r.updated_at as string,
@@ -134,6 +135,7 @@ export const personnelLibraryApi = {
     if (body.agency !== undefined) updates.agency = body.agency;
     if (body.notes !== undefined) updates.notes = body.notes;
     if (body.isActive !== undefined) updates.is_active = body.isActive;
+    if (body.photoUrl !== undefined) updates.photo_url = body.photoUrl;
 
     const { data, error } = await supabase
       .from('facility_personnel')
@@ -143,6 +145,37 @@ export const personnelLibraryApi = {
       .maybeSingle();
     if (error) throw error;
     return { data: toPersonnel(data as any) };
+  },
+
+  uploadPhoto: async (facilityId: string, personnelId: string, file: File): Promise<{ data: string }> => {
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+    const path = `${facilityId}/${personnelId}.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from('personnel-photos')
+      .upload(path, file, { upsert: true, contentType: file.type });
+    if (uploadError) throw uploadError;
+    const { data: urlData } = supabase.storage.from('personnel-photos').getPublicUrl(path);
+    const photoUrl = urlData.publicUrl;
+    const { error: updateError } = await supabase
+      .from('facility_personnel')
+      .update({ photo_url: photoUrl, updated_at: new Date().toISOString() })
+      .eq('id', personnelId);
+    if (updateError) throw updateError;
+    return { data: photoUrl };
+  },
+
+  removePhoto: async (facilityId: string, personnelId: string, photoUrl: string): Promise<{ data: null }> => {
+    const urlObj = new URL(photoUrl);
+    const pathParts = urlObj.pathname.split('/personnel-photos/');
+    if (pathParts.length > 1) {
+      await supabase.storage.from('personnel-photos').remove([pathParts[1]]);
+    }
+    const { error } = await supabase
+      .from('facility_personnel')
+      .update({ photo_url: null, updated_at: new Date().toISOString() })
+      .eq('id', personnelId);
+    if (error) throw error;
+    return { data: null };
   },
 
   remove: async (id: string): Promise<{ data: null }> => {

@@ -192,8 +192,8 @@ export default function PersonnelLibrary() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  {['Name', 'Title / Agency', 'Default HICS role', 'Contact', 'Status', ''].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {['', 'Name', 'Title / Agency', 'Default HICS role', 'Contact', 'Status', ''].map((h, i) => (
+                    <th key={i} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       {h}
                     </th>
                   ))}
@@ -201,11 +201,11 @@ export default function PersonnelLibrary() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {loadingPersonnel && (
-                  <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-400">Loading…</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-400">Loading…</td></tr>
                 )}
                 {!loadingPersonnel && (personnelData?.data.length ?? 0) === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center">
+                    <td colSpan={7} className="px-4 py-12 text-center">
                       <Users className="h-8 w-8 text-gray-300 mx-auto mb-2" />
                       <p className="text-sm text-gray-400">No personnel records yet. Add your first record to get started.</p>
                     </td>
@@ -213,6 +213,22 @@ export default function PersonnelLibrary() {
                 )}
                 {personnelData?.data.map(p => (
                   <tr key={p.id} className="hover:bg-gray-50">
+                    <td className="px-3 py-2 w-10">
+                      {p.photoUrl ? (
+                        <img
+                          src={p.photoUrl}
+                          alt={`${p.firstName} ${p.lastName}`}
+                          className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-slate-100 border border-gray-200 flex items-center justify-center">
+                          <svg viewBox="0 0 80 80" className="w-5 h-5 text-slate-400" fill="currentColor">
+                            <circle cx="40" cy="28" r="16" />
+                            <ellipse cx="40" cy="68" rx="26" ry="18" />
+                          </svg>
+                        </div>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">
                       {p.firstName} {p.lastName}
                     </td>
